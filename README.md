@@ -12,7 +12,7 @@ Less time spent on management means more time developing features and learning.
 >~~" 'Cher, It got work on my machine, what!"~~
 
 
----
+
 
 Academic Goals  (Final Project Brief)
 ---
@@ -40,7 +40,7 @@ Academic Goals  (Final Project Brief)
 	 - [ ] Mesh Objects
 	 - [ ] Lighting Objects
  - [ ] [RenderDoc](https://renderdoc.org/)
----
+
 
 DevOps and Agile Goals
 --
@@ -61,12 +61,11 @@ DevOps and Agile Goals
 		 - [ ] After building, automated packaging of compiled files, assets, documentation and dependency batch file is created and archived for each state of development, ready to be 'shipped' to Tomas at any moment.
 - [ ] [GitHub Project](https://docs.github.com/en/issues/organizing-your-work-with-project-boards/managing-project-boards/about-project-boards) Kanban Board Automation
 	- [ ] [Issues/Pull Requests/Merges](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues) as trackable stories
----
+
 *Challenging but successful implementation with scaleablity would allow graphical outputs to be checked directly against model images. This would allow graphical aspects of scenes of a project to be rigorously tested automatically, reducing workload for Quality Assurance for game development and game engine projects for this workflow. Naive implmentation may compare pixels to pixels of screenshots to spot for glaring errors.
 
 
 
----
 
 References
 ---
@@ -79,7 +78,7 @@ The project uses the following tutorial resources for Vulkan SDK and Win32 API b
 
 No other codebases were examined for this project.
 
----
+
 
 Third-Party Libraries and Dependencies
 ---
