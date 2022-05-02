@@ -80,3 +80,11 @@ The project uses the following tutorial resources for Vulkan SDK and Win32 API b
 No other codebases were examined for this project.
 
 ---
+
+Third-Party Libraries and Dependencies
+---
+1. [Assimp](https://github.com/assimp/assimp)
+2. [Dear Imgui](https://github.com/ocornut/imgui)
+3. [Vulkan SDK](https://www.vulkan.org/)
+4. [tinydssloader](https://github.com/benikabocha/tinyddsloader)
+5. [Doxygen](https://www.doxygen.nl/index.html)
