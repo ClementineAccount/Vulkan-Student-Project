@@ -1,6 +1,7 @@
 # Vulkan-Student-Project Brief
 Final Project for CSD2150 with Tomas Arce. 
 
+
 In addition to meeting all marking rubrics of the Final Project, this project is also an attempt to innovate in implementing DevOps techiniques for Vulkan Game Engine development, which is still an undeveloped niche among [Computer Science and Real-Time Simulation students at DigiPen Singapore](https://www.digipen.edu.sg/academics/computer-science-degrees/bs-in-computer-science-in-real-time-interactive-simulation). 
 
 This project hence also serves as research which will lay the foundation and groundwork for successful DevOps principles that can be used to reduce the workload, crunch and human error in the GAM projects. Certain useful principles for game engine and game development such as [containerization](https://www.redhat.com/en/topics/cloud-native-apps/what-is-containerization), [cloud infrastructure](https://www.redhat.com/en/topics/cloud-computing/what-is-cloud-infrastructure) and [virtualization](https://www.xenonstack.com/insights/virtualization-in-devops/) will have to be left out of this project in the essence of time, budget and simplicity.
@@ -62,3 +63,20 @@ DevOps and Agile Goals
 	- [ ] [Issues/Pull Requests/Merges](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues) as trackable stories
 ---
 *Challenging but successful implementation with scaleablity would allow graphical outputs to be checked directly against model images. This would allow graphical aspects of scenes of a project to be rigorously tested automatically, reducing workload for Quality Assurance for game development and game engine projects for this workflow. Naive implmentation may compare pixels to pixels of screenshots to spot for glaring errors.
+
+
+
+---
+
+References
+---
+The project uses the following tutorial resources for Vulkan SDK and Win32 API boilerplate code:
+
+1. [Vulkan-Tutorial.com](https://vulkan-tutorial.com/Introduction)
+2. [xGPU](https://github.com/LIONant-depot/xGPU)
+3. [docs.microsoft.com](https://docs.microsoft.com/en-us/windows/win32/api/)
+4. Tomas Arce CSD2150 Leture Recordings.
+
+No other codebases were examined for this project.
+
+---
