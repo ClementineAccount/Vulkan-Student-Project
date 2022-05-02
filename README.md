@@ -20,7 +20,7 @@ Academic Goals  (Final Project Brief)
 
  - [ ] FBX  mesh loader with [Assimp](https://github.com/assimp/assimp)
  - [ ] Texture + Lighting
-	 - [ ] DDS loader support using [tinydssloader](https://github.com/benikabocha/tinyddsloader)
+	 - [ ] DDS loader support using [tinyddsloader](https://github.com/benikabocha/tinyddsloader)
 	 - [ ] Support the following Texture Maps
 		 - [ ] Albedo/Diffuse
 		 - [ ] Normal Map ([BC5](https://docs.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression))
@@ -85,5 +85,5 @@ Third-Party Libraries and Dependencies
 1. [Assimp](https://github.com/assimp/assimp)
 2. [Dear Imgui](https://github.com/ocornut/imgui)
 3. [Vulkan SDK](https://www.vulkan.org/)
-4. [tinydssloader](https://github.com/benikabocha/tinyddsloader)
+4. [tinyddsloader](https://github.com/benikabocha/tinyddsloader)
 5. [Doxygen](https://www.doxygen.nl/index.html)
