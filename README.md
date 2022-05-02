@@ -38,6 +38,7 @@ Academic Goals  (Final Project Brief)
 	 - [ ] Camera Starting Settings
 	 - [ ]  Mesh Objects
 	 - [ ] Lighting Objects
+ - [ ] RenderDoc
 ---
 
 DevOps and Agile Goals
