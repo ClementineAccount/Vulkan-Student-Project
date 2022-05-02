@@ -48,8 +48,8 @@ DevOps and Agile Goals
  - [ ] [CI/CD](https://www.atlassian.com/continuous-delivery/principles/continuous-integration-vs-delivery-vs-deployment) Pipeline using [GitHub Actions](https://github.com/features/actions) on a [Self-Hosted Runner](https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners)
 	 - [ ] Continuous integration 
 		 - [ ] Automated Building
-			 - [ ] MSVC 2019 | Windows x64 | Debug
-			 - [ ] MSVC 2019 | Windows x64 | Release
+			 - [ ] MSVC 2019 | Windows x64 | Debug (C++17)
+			 - [ ] MSVC 2019 | Windows x64 | Release (C++17)
 	 - [ ]  [Automated Testing](https://www.atlassian.com/devops/devops-tools/test-automation) with 'light' [Test-Driven Development](https://medium.com/swlh/revisiting-test-driven-development-for-a-devops-world-401f1f8d3275) principles
 		 - [ ] Simple testing (error codes, data matches expected)
 		 - [ ] Testing for Vulkan Validation Layers
