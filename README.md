@@ -28,7 +28,7 @@ Academic Goals  (Final Project Brief)
 		 - [ ] Roughness [Specular] ([DXT1 | BC1](https://docs.microsoft.com/en-us/windows/win32/direct3d11/texture-block-compression-in-direct3d-11))
  - [ ] Controllable Camera Support
  - [ ] Fragment Shader Support
- - [ ] Dear Imgui Editor 
+ - [ ] [Dear Imgui](https://github.com/ocornut/imgui) Editor 
 	 - [ ] Mesh addition + selection and manipulation at runtime
 	 - [ ] Light addition + selection and manipulation at runtime
  - [ ] Serialized scene settings (Push Constants)
@@ -36,9 +36,9 @@ Academic Goals  (Final Project Brief)
 	 - [ ] Specular Intensity
 	 - [ ] Ambient Lighting
 	 - [ ] Camera Starting Settings
-	 - [ ]  Mesh Objects
+	 - [ ] Mesh Objects
 	 - [ ] Lighting Objects
- - [ ] RenderDoc
+ - [ ] [RenderDoc](https://renderdoc.org/)
 ---
 
 DevOps and Agile Goals
