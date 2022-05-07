@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Clem\Documents\Vulkan-Student-Project\OrangeEngine\CMakeFiles\c24234a0a2acf8c5504cd22c16153286\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{295563D2-2C8D-3C7B-A385-000A2B742D52}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

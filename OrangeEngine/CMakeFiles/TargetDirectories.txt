@@ -1,0 +1,3 @@
+C:/Users/Clem/Documents/Vulkan-Student-Project/OrangeEngine/CMakeFiles/ALL_BUILD.dir
+C:/Users/Clem/Documents/Vulkan-Student-Project/OrangeEngine/CMakeFiles/ZERO_CHECK.dir
+C:/Users/Clem/Documents/Vulkan-Student-Project/OrangeEngine/src/CMakeFiles/OrangeEngine.dir
