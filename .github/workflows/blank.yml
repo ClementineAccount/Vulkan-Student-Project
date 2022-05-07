@@ -45,9 +45,9 @@ jobs:
           cd OrangeEngine
           call build_all.bat 
           
-      # Test running program as a precursor to unit testing eventually 
+      # Test running program as a precursor to unit testing eventually (try run it directly?)
       - name: Run Program
-        run: call run_program.bat
+        run: OrangeEngine\x64\Debug\OrangeEngine.exe
       
       
       
