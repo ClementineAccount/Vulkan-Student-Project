@@ -44,3 +44,10 @@ jobs:
         run: |
           cd OrangeEngine
           call build_all.bat 
+          
+      # Test running program as a precursor to unit testing eventually 
+      - name: Run Program
+        run: call run_program_test.bat
+      
+      
+      
