@@ -41,13 +41,11 @@ jobs:
           
       # Testing running an existing batch file using the runners shell
       - name: Attempt to run the build batch file
-        run: |
-          cd OrangeEngine
-          call build_all.bat 
+        run:  call OrangeEngine\build_all.bat 
           
       # Test running program as a precursor to unit testing eventually (try run it directly?)
       - name: Run Program
-        run: x64\Debug\OrangeEngine.exe
+        run: OrangeEngine\x64\Debug\OrangeEngine.exe
       
       
       
