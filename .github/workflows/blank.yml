@@ -38,3 +38,7 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+          
+      # Testing running an existing batch file using the runners shell
+      - name: Attempt to run the build batch file
+        run: call build_all.bat 
