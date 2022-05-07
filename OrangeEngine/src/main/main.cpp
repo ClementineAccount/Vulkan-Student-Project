@@ -7,6 +7,7 @@ using namespace std;
 
 int main()
 {
-	cout << "Hello CMake." << endl;
-	return 0;
+	cout << "Hello CMake. I have made changes (good (For real))" << endl;
+	int a;
+	cin >> a;
 }
