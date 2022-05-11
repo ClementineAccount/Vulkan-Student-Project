@@ -9,10 +9,6 @@ This project hence also serves as research which will lay the foundation and gro
 The automated tools will also encourage students to use kanban board and ticketing system.  
 Less time spent on management means more time developing features and learning.
 
->~~" 'Cher, It got work on my machine, what!"~~
-
-
-
 
 Academic Goals  (Final Project Brief)
 ---
