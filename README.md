@@ -70,7 +70,8 @@ The project uses the following tutorial resources for Vulkan SDK and Win32 API b
 1. [Vulkan-Tutorial.com](https://vulkan-tutorial.com/Introduction)
 2. [xGPU](https://github.com/LIONant-depot/xGPU)
 3. [docs.microsoft.com](https://docs.microsoft.com/en-us/windows/win32/api/)
-4. Tomas Arce CSD2150 Leture Recordings.
+4. [Official Vulkan SDK](https://vulkan.lunarg.com/doc/view/1.2.148.1/windows/getting_started.html)
+5. Tomas Arce CSD2150 Leture Recordings.
 
 No other codebases were examined for this project.
 
