@@ -47,7 +47,7 @@ jobs:
           
       # Test running program as a precursor to unit testing eventually (try run it directly?)
       - name: Run Program
-        run: OrangeEngine\x64\Debug\OrangeEngine.exe
+        run: OrangeEngine\x64\Debug\LinkerBuildTests.exe
       
       
       
