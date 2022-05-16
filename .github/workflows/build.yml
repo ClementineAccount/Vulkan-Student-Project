@@ -36,8 +36,10 @@ jobs:
           call build_all.bat 
           
       # Test running program as a precursor to unit testing eventually (try run it directly?)
-      - name: Run Program
-        run: OrangeEngine\x64\Debug\LinkerBuildTests.exe
+      - name: Run Program then close
+        run: | 
+          OrangeEngine\x64\Debug\LinkerBuildTests.exe
+          taskkill /im LinkerBuildTests.exe /f
       
       
       
