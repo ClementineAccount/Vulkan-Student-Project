@@ -1,4 +1,14 @@
-//Adapted code for testing linking from: https://docs.microsoft.com/en-us/windows/win32/learnwin32/windows-hello-world-sample
+/*****************************************************************//**
+ * \file   LinkerBuildTest.cpp
+ * \brief 
+ *         This file was adapted from Microsoft's [documentation](https://docs.microsoft.com/en-us/windows/win32/learnwin32/windows-hello-world-sample) 
+ *         on using the Win32 API
+ *         for the purposes of testing linker configuration on Visual Studio on the machine
+ *         when building.
+ * 
+ * \author Clementine Shamaney, clementine.s@digipen.edu
+ * \date   May 2022
+ *********************************************************************/
 
 // compile with: /D_UNICODE /DUNICODE /DWIN32 /D_WINDOWS /c
 
@@ -6,7 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
-
 
 //Vulkan
 #include <vulkan/vulkan.hpp>
