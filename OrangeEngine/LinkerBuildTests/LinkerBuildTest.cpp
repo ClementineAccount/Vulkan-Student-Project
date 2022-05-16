@@ -21,6 +21,11 @@
 #include <vulkan/vulkan.hpp>
 #include <iostream>
 
+#include "LinkerBuildTest.h"
+
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+
 // Global variables
 
 // The main window class name.
@@ -50,6 +55,21 @@ int main()
 #if defined(_DEBUG)
     layers.push_back("VK_LAYER_KHRONOS_validation");
 #endif
+
+
+    //// Setup Dear ImGui context
+    //IMGUI_CHECKVERSION();
+    //ImGui::CreateContext();
+    //ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ////io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    ////io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // // Setup Dear ImGui style
+    //ImGui::StyleColorsDark();
+    ////ImGui::StyleColorsClassic();
+
+
+
 
     return WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 }
@@ -125,6 +145,11 @@ int WINAPI WinMain(
 
         return 1;
     }
+
+    // Setup Platform/Renderer backends
+    //ImGui_ImplWin32_Init(hWnd);
+
+
 
     // The parameters to ShowWindow explained:
     // hWnd: the value returned from CreateWindow
