@@ -16,60 +16,66 @@
     <Filter Include="DearImgui">
       <UniqueIdentifier>{7155bb47-4314-445f-bc45-1230de082cf3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\DearImgui">
+      <UniqueIdentifier>{c854bfb2-226d-4d89-84c7-e07b9a55818d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\main">
+      <UniqueIdentifier>{ad9bc643-c427-46e6-bd8a-57cc73da0fc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\VulkanBoilerplate">
+      <UniqueIdentifier>{5f5614f4-a933-47d7-a90e-9bd2a6bfd2a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LinkerBuildTest.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="imconfig.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_impl_vulkan.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_impl_win32.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_internal.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_rectpack.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_textedit.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_truetype.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
+    </ClInclude>
+    <ClInclude Include="LinkerBuildTest.h">
+      <Filter>Source Files\main</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanInstance.h">
+      <Filter>Source Files\VulkanBoilerplate</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="LinkerBuildTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="imgui.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_demo.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_draw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_impl_vulkan.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_impl_win32.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_tables.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_widgets.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\DearImgui</Filter>
+    </ClCompile>
+    <ClCompile Include="LinkerBuildTest.cpp">
+      <Filter>Source Files\main</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

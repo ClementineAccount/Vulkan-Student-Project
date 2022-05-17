@@ -2,9 +2,12 @@
  * \file   LinkerBuildTest.cpp
  * \brief 
  *         This file was adapted from Microsoft's [documentation](https://docs.microsoft.com/en-us/windows/win32/learnwin32/windows-hello-world-sample) 
- *         on using the Win32 API
+ *         on using the Win32 API and some vulkan tutorials
  *         for the purposes of testing linker configuration on Visual Studio on the machine
  *         when building.
+ * 
+ *         It is not designed to be organized and is only currently in use to test linking and
+ *         understanding
  * 
  * \author Clementine Shamaney, clementine.s@digipen.edu
  * \date   May 2022
@@ -19,6 +22,9 @@
 
 //Vulkan
 #include <vulkan/vulkan.hpp>
+#include "VulkanInstance.h"
+
+
 #include <iostream>
 
 #include "LinkerBuildTest.h"
@@ -27,6 +33,9 @@
 #include "imgui_impl_win32.h"
 
 // Global variables
+
+//Global instance for the application for testing purposes
+VkInstance gVkInstance;
 
 // The main window class name.
 static TCHAR szWindowClass[] = _T("DesktopApp");
@@ -42,13 +51,35 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 bool endEarly = true;
 
+void createVulkanInstances(VkInstance& instance)
+{
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Linker Test";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "Orange Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+
+    createInfo.enabledLayerCount = 0;
+
+    VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
+
+    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+        throw std::runtime_error("Failed: Vulkan Creation Instance"); //Possible test case here in the future?
+    }
+}
 
 
 int main()
 {
     //Can hide the console on demand
     //::ShowWindow(::GetConsoleWindow(), SW_SHOW);
-    std::cout << "Hello society.";
+    std::cout << "Hello Console.";
 
     // Use validation layers if this is a debug build
     std::vector<const char*> layers;
@@ -56,22 +87,16 @@ int main()
     layers.push_back("VK_LAYER_KHRONOS_validation");
 #endif
 
-
-    //// Setup Dear ImGui context
-    //IMGUI_CHECKVERSION();
-    //ImGui::CreateContext();
-    //ImGuiIO& io = ImGui::GetIO(); (void)io;
-    ////io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    ////io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-    // // Setup Dear ImGui style
-    //ImGui::StyleColorsDark();
-    ////ImGui::StyleColorsClassic();
-
-
-
-
+    //Attempt to create an instance
+    createVulkanInstances(gVkInstance);
     return WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
+
+}
+
+
+void cleanup()
+{
+    vkDestroyInstance(gVkInstance, nullptr);
 }
 
 
@@ -198,6 +223,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
+        cleanup(); //clear vulkan instances and stuff
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
