@@ -86,3 +86,6 @@ Third-Party Libraries and Dependencies
 3. [Vulkan SDK](https://www.vulkan.org/)
 4. [tinyddsloader](https://github.com/benikabocha/tinyddsloader)
 5. [Doxygen](https://www.doxygen.nl/index.html)
+6. [GLM](https://github.com/g-truc/glm)*
+
+*might replace this if requested by Tomas in last days of submission
