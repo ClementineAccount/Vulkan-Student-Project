@@ -7,7 +7,7 @@
  *         when building.
  * 
  *         It is not designed to be organized and is only currently in use to test linking and
- *         understanding
+ *         understanding. It's informal and crude so please don't submit it in the final...
  * 
  * \author Clementine Shamaney, clementine.s@digipen.edu
  * \date   May 2022
@@ -36,6 +36,8 @@
 
 //Global instance for the application for testing purposes
 VkInstance gVkInstance;
+uint32_t gExtensionCount = 0;
+std::vector<VkExtensionProperties> gExtensionVector(gExtensionCount);
 
 // The main window class name.
 static TCHAR szWindowClass[] = _T("DesktopApp");
@@ -50,6 +52,18 @@ HINSTANCE hInst;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 bool endEarly = true;
+
+constexpr int windowWidth = 800;
+constexpr int windowHeight = 600;
+
+
+VkPhysicalDevice physicalDeviceGraphicsCard;
+
+int vulkanDefault()
+{
+    physicalDeviceGraphicsCard = nullptr;
+    return 0;
+}
 
 void createVulkanInstances(VkInstance& instance)
 {
@@ -72,7 +86,82 @@ void createVulkanInstances(VkInstance& instance)
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("Failed: Vulkan Creation Instance"); //Possible test case here in the future?
     }
+
+    vulkanDefault();
 }
+
+
+//Adapted from: https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Physical_devices_and_queue_families
+void getGraphicsCard(VkInstance& instance, VkPhysicalDevice& graphicsCardDevice)
+{
+    //Go through each device to find a dedicated graphics card
+
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    if (deviceCount == 0) {
+        throw std::runtime_error("no devices with vulkan support");
+    }
+
+    std::vector<VkPhysicalDevice> deviceVector(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, deviceVector.data());
+
+
+    //Get the dedicated GPU or just any other graphics capable device
+    for (VkPhysicalDevice const& device : deviceVector)
+    {
+        //Get the features of the device
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        //Only allow devices that have queue families
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        bool cardSupportsGraphics = false;
+        for (const auto& queueFamily : queueFamilies) {
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                cardSupportsGraphics = true;
+                break;
+            }
+        }
+
+        graphicsCardDevice = device;
+        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
+            return;
+        }
+    }
+
+    if (graphicsCardDevice == VK_NULL_HANDLE) {
+        throw std::runtime_error("no graphics device found");
+    }
+
+}
+
+//Creating a wrapper just to call one function and a loop is good game design
+void queryExtensions(uint32_t &extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
+{
+    //gotta get the count first before u can put the stuff in that's how this works
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCountRef, nullptr);
+    extensionVectorRef.resize(extensionCountRef);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCountRef, extensionVectorRef.data());
+    
+    if (!showNames)
+        return;
+
+    std::cout << '\t' << "avaliable extensions: " << '\n';
+    for (VkExtensionProperties const& e : extensionVectorRef)
+        std::cout << '\t' << e.extensionName << '\n';
+}
+
+
+
 
 
 int main()
@@ -89,6 +178,12 @@ int main()
 
     //Attempt to create an instance
     createVulkanInstances(gVkInstance);
+    queryExtensions(gExtensionCount, gExtensionVector);
+    getGraphicsCard(gVkInstance, physicalDeviceGraphicsCard);
+
+    if (physicalDeviceGraphicsCard != VK_NULL_HANDLE)
+        std::cout << "graphics card found :)\n";
+
     return WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
 }
@@ -143,7 +238,6 @@ int WINAPI WinMain(
     // szTitle: the text that appears in the title bar
     // WS_OVERLAPPEDWINDOW: the type of window to create
     // CW_USEDEFAULT, CW_USEDEFAULT: initial position (x, y)
-    // 500, 100: initial size (width, length)
     // NULL: the parent of this window
     // NULL: this application does not have a menu bar
     // hInstance: the first parameter from WinMain
@@ -154,7 +248,7 @@ int WINAPI WinMain(
         szTitle,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        500, 100,
+        windowWidth, windowHeight,
         NULL,
         NULL,
         hInstance,
@@ -204,7 +298,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     PAINTSTRUCT ps;
     HDC hdc;
-    TCHAR greeting[] = _T("Hello, Windows desktop!");
+    TCHAR greeting[] = _T("Vulkan Linker Test");
 
     switch (message)
     {
