@@ -35,6 +35,7 @@
 #include "imgui_impl_win32.h"
 
 
+//To do: really should make a debug class that hooks the callback for the vkResult stuff
 
 // Global variables
 
@@ -57,38 +58,48 @@ bool endEarly = true;
 constexpr int windowWidth = 800;
 constexpr int windowHeight = 600;
 
-namespace vkVariables
+
+//temporary before I move it all into good things
+  //Global instance for the application for testing purposes
+VkInstance gVkInstance;
+uint32_t gExtensionCount = 0;
+std::vector<VkExtensionProperties> gExtensionVector(gExtensionCount);
+
+struct queueContainer
+{
+    VkQueue queue;
+    uint32_t queueFamilyIndex;
+
+    std::vector<VkQueueFamilyProperties> queueFamilyVector;
+    uint32_t queueFamilyCount;
+};
+
+queueContainer graphicsQueueContainer;
+
+struct graphicsCard
+{
+    VkPhysicalDevice physicalDevice;
+    VkDevice logicalDevice;
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+
+    queueContainer graphicsQueueContainer;
+};
+
+graphicsCard currGraphicsCard;
+
+
+//for vksurface, vkimage and swap chain buffer stuff
+struct presentationContainer
 {
     VkSurfaceKHR win32Surface;
+    VkQueue presentationQueue;
+};
 
-    //Global instance for the application for testing purposes
-    VkInstance gVkInstance;
-    uint32_t gExtensionCount = 0;
-    std::vector<VkExtensionProperties> gExtensionVector(gExtensionCount);
+presentationContainer currPresentation;
 
-    struct graphicsCard
-    {
-        VkPhysicalDevice physicalDevice;
-        VkDevice logicalDevice;
-        VkPhysicalDeviceProperties deviceProperties;
-        VkPhysicalDeviceFeatures deviceFeatures;
-
-        //Which index out of the queue do graphics queue families live in
-        uint32_t queueFamilyIndexGraphics;
-
-        std::vector<VkQueueFamilyProperties> queueFamilyVector;
-        uint32_t queueFamilyCount;
-
-        VkQueue graphicsQueue;
-    };
-
-    graphicsCard currGraphicsCard;
-
-    // Use validation layers if this is a debug build
-    std::vector<const char*> g_validationLayers;
-}
-
-using namespace vkVariables;
+// Use validation layers if this is a debug build
+std::vector<const char*> g_validationLayers;
 
 int vulkanDefault()
 {
@@ -196,12 +207,14 @@ void getGraphicsCard(VkInstance& instance, graphicsCard& graphicsCardStruct)
             }
         }
 
-        graphicsCardStruct.queueFamilyIndexGraphics = queueFamilyIndexGraphics;
+
         graphicsCardStruct.deviceProperties = deviceProperties;
         graphicsCardStruct.deviceFeatures = deviceFeatures;
         graphicsCardStruct.physicalDevice = device;
-        graphicsCardStruct.queueFamilyVector = queueFamilies;
-        graphicsCardStruct.queueFamilyCount = queueFamilyCount;
+
+        graphicsCardStruct.graphicsQueueContainer.queueFamilyIndex = queueFamilyIndexGraphics;
+        graphicsCardStruct.graphicsQueueContainer.queueFamilyVector = queueFamilies;
+        graphicsCardStruct.graphicsQueueContainer.queueFamilyCount = queueFamilyCount;
 
         if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
@@ -221,7 +234,7 @@ void makeGraphicsLogicalDevice(graphicsCard& graphicsCardStruct)
     VkDeviceQueueCreateInfo queueCreateInfo{};
 
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = graphicsCardStruct.queueFamilyIndexGraphics;
+    queueCreateInfo.queueFamilyIndex = graphicsCardStruct.graphicsQueueContainer.queueFamilyIndex;
     queueCreateInfo.queueCount = 1;
 
     float queuePriority = 1.0f;
@@ -270,7 +283,7 @@ void makeGraphicsLogicalDevice(graphicsCard& graphicsCardStruct)
 
     //How many queues you want to create from this call
     uint32_t numGraphicsQueues = 0;
-    vkGetDeviceQueue(graphicsCardStruct.logicalDevice, graphicsCardStruct.queueFamilyIndexGraphics, numGraphicsQueues, &graphicsCardStruct.graphicsQueue);
+    vkGetDeviceQueue(graphicsCardStruct.logicalDevice, graphicsCardStruct.graphicsQueueContainer.queueFamilyIndex, numGraphicsQueues, &graphicsCardStruct.graphicsQueueContainer.queue);
 
 }
 
@@ -310,7 +323,7 @@ int setupSurface(HWND hwnd, HINSTANCE hInstance)
 
 
     VkResult result;
-    result = vkCreateWin32SurfaceKHR(gVkInstance, &createSurfaceInfo, nullptr, &win32Surface);
+    result = vkCreateWin32SurfaceKHR(gVkInstance, &createSurfaceInfo, nullptr, &currPresentation.win32Surface   );
     if (result != VK_SUCCESS) {
         throw std::runtime_error("window surface creation failed");
     }
@@ -319,6 +332,12 @@ int setupSurface(HWND hwnd, HINSTANCE hInstance)
         std::cout << "Created win32api window surface\n";
     }
 
+    //Also get the presentation queue here (could prob move this honestly)
+    vkGetDeviceQueue(currGraphicsCard.logicalDevice, currGraphicsCard.graphicsQueueContainer.queueFamilyIndex, 
+        0, &currPresentation.presentationQueue);
+
+
+    std::cout << "presentation queue created\n";
 }
 
 int main()
