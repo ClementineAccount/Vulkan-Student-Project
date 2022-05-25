@@ -21,9 +21,11 @@
 #include <tchar.h>
 
 //Vulkan
+
+//win32 api
+#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.hpp>
 #include "VulkanInstance.h"
-
 
 #include <iostream>
 
@@ -32,12 +34,11 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 
+
+
 // Global variables
 
-//Global instance for the application for testing purposes
-VkInstance gVkInstance;
-uint32_t gExtensionCount = 0;
-std::vector<VkExtensionProperties> gExtensionVector(gExtensionCount);
+
 
 // The main window class name.
 static TCHAR szWindowClass[] = _T("DesktopApp");
@@ -56,32 +57,60 @@ bool endEarly = true;
 constexpr int windowWidth = 800;
 constexpr int windowHeight = 600;
 
-struct graphicsCard
+namespace vkVariables
 {
-    VkPhysicalDevice physicalDevice;
-    VkDevice logicalDevice;
-    VkPhysicalDeviceProperties deviceProperties;
-    VkPhysicalDeviceFeatures deviceFeatures;
+    VkSurfaceKHR win32Surface;
 
-    //Which index out of the queue do graphics queue families live in
-    uint32_t queueFamilyIndexGraphics;
+    //Global instance for the application for testing purposes
+    VkInstance gVkInstance;
+    uint32_t gExtensionCount = 0;
+    std::vector<VkExtensionProperties> gExtensionVector(gExtensionCount);
 
-    std::vector<VkQueueFamilyProperties> queueFamilyVector;
-    uint32_t queueFamilyCount;
+    struct graphicsCard
+    {
+        VkPhysicalDevice physicalDevice;
+        VkDevice logicalDevice;
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
 
-    VkQueue graphicsQueue;
-};
+        //Which index out of the queue do graphics queue families live in
+        uint32_t queueFamilyIndexGraphics;
 
-graphicsCard currGraphicsCard;
+        std::vector<VkQueueFamilyProperties> queueFamilyVector;
+        uint32_t queueFamilyCount;
 
-// Use validation layers if this is a debug build
-std::vector<const char*> g_validationLayers;
+        VkQueue graphicsQueue;
+    };
 
+    graphicsCard currGraphicsCard;
+
+    // Use validation layers if this is a debug build
+    std::vector<const char*> g_validationLayers;
+}
+
+using namespace vkVariables;
 
 int vulkanDefault()
 {
     return 0;
 }
+
+void queryExtensions(uint32_t& extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
+{
+    //gotta get the count first before u can put the stuff in that's how this works
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCountRef, nullptr);
+    extensionVectorRef.resize(extensionCountRef);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCountRef, extensionVectorRef.data());
+
+    if (!showNames)
+        return;
+
+    std::cout << '\t' << "avaliable extensions: " << '\n';
+    for (VkExtensionProperties const& e : extensionVectorRef)
+        std::cout << '\t' << e.extensionName << '\n';
+}
+
+
 
 void createVulkanInstances(VkInstance& instance)
 {
@@ -96,8 +125,20 @@ void createVulkanInstances(VkInstance& instance)
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-
     createInfo.enabledLayerCount = 0;
+
+    uint32_t extensionCount;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> extensionVector(extensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionVector.data());
+
+    createInfo.enabledExtensionCount = extensionCount;
+    std::vector<const char*> extensionNames(gExtensionCount);
+    for (auto const& extension : extensionVector)
+        extensionNames.push_back(extension.extensionName);
+
+    createInfo.ppEnabledExtensionNames = extensionNames.data();
+
 
     VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
 
@@ -194,14 +235,33 @@ void makeGraphicsLogicalDevice(graphicsCard& graphicsCardStruct)
     createInfo.pQueueCreateInfos = &queueCreateInfo;
     
     createInfo.pEnabledFeatures = &graphicsCardStruct.deviceFeatures;
-    
-    createInfo.enabledExtensionCount = 0;
 
     createInfo.enabledLayerCount = g_validationLayers.size();
     createInfo.ppEnabledLayerNames = g_validationLayers.data();
 
 
-    if (vkCreateDevice(graphicsCardStruct.physicalDevice, &createInfo, nullptr, &graphicsCardStruct.logicalDevice) != VK_SUCCESS) {
+    //Get extensions for graphics card
+
+    uint32_t extensionCountGraphics = 0;
+    vkEnumerateDeviceExtensionProperties(graphicsCardStruct.physicalDevice, nullptr, &extensionCountGraphics, nullptr);
+    std::vector<VkExtensionProperties> extensionGraphicsVector(extensionCountGraphics);
+
+    VkResult result;
+    result = vkEnumerateDeviceExtensionProperties(graphicsCardStruct.physicalDevice, nullptr, &extensionCountGraphics, extensionGraphicsVector.data());
+
+    //createInfo.enabledExtensionCount = extensionCountGraphics;
+
+    std::vector<const char*> extensionNames;
+    for (auto const& p : extensionGraphicsVector)
+    {
+        extensionNames.push_back(p.extensionName);
+    }
+
+    createInfo.enabledExtensionCount = extensionNames.size();
+    createInfo.ppEnabledExtensionNames = extensionNames.data();
+
+    result = vkCreateDevice(graphicsCardStruct.physicalDevice, &createInfo, nullptr, &graphicsCardStruct.logicalDevice);
+    if (result != VK_SUCCESS) {
         std::string errorMsg = "failed to create logical device for: ";
         errorMsg += graphicsCardStruct.deviceProperties.deviceName;
         throw std::runtime_error(errorMsg);
@@ -214,24 +274,8 @@ void makeGraphicsLogicalDevice(graphicsCard& graphicsCardStruct)
 
 }
 
-//Creating a wrapper just to call one function and a loop is good game design
-void queryExtensions(uint32_t &extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
-{
-    //gotta get the count first before u can put the stuff in that's how this works
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCountRef, nullptr);
-    extensionVectorRef.resize(extensionCountRef);
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCountRef, extensionVectorRef.data());
-    
-    if (!showNames)
-        return;
 
-    std::cout << '\t' << "avaliable extensions: " << '\n';
-    for (VkExtensionProperties const& e : extensionVectorRef)
-        std::cout << '\t' << e.extensionName << '\n';
-}
-
-
-//Prototype function for setting up a 
+//Prototype function for setting up a vulka instance with an example surface view 
 int setupPrototype()
 {
 
@@ -240,8 +284,10 @@ int setupPrototype()
 #endif
 
     //Attempt to create an instance
+
     createVulkanInstances(gVkInstance);
-    queryExtensions(gExtensionCount, gExtensionVector);
+
+
     getGraphicsCard(gVkInstance, currGraphicsCard);
 
     VkPhysicalDeviceProperties deviceProperties;
@@ -250,10 +296,29 @@ int setupPrototype()
 
     makeGraphicsLogicalDevice(currGraphicsCard);
 
-
-
-
     return 0;
+}
+
+
+//Pass in the win32 api window
+int setupSurface(HWND hwnd, HINSTANCE hInstance)
+{
+    VkWin32SurfaceCreateInfoKHR createSurfaceInfo{};
+    createSurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    createSurfaceInfo.hwnd = hwnd;
+    createSurfaceInfo.hinstance = hInstance;
+
+
+    VkResult result;
+    result = vkCreateWin32SurfaceKHR(gVkInstance, &createSurfaceInfo, nullptr, &win32Surface);
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("window surface creation failed");
+    }
+    else
+    {
+        std::cout << "Created win32api window surface\n";
+    }
+
 }
 
 int main()
@@ -264,18 +329,16 @@ int main()
 
     setupPrototype();
 
-
     return WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
-
 }
 
 
 void cleanup()
 {
+    std::cout << "cleanup()\n";
     vkDestroyInstance(gVkInstance, nullptr);
+    //vkDestroyDevice(currGraphicsCard.logicalDevice, nullptr);
 }
-
-
 
 
 int WINAPI WinMain(
@@ -346,9 +409,11 @@ int WINAPI WinMain(
         return 1;
     }
 
-    // Setup Platform/Renderer backends
-    //ImGui_ImplWin32_Init(hWnd);
 
+    //Tell vulkan we got a win32 api window
+    // 
+    // //cant seem to pass hWnd inside. Not sure why will check it out later
+    setupSurface(hWnd, hInstance);
 
 
     // The parameters to ShowWindow explained:
