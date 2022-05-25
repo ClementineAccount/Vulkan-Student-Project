@@ -62,6 +62,14 @@ struct graphicsCard
     VkDevice logicalDevice;
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
+
+    //Which index out of the queue do graphics queue families live in
+    uint32_t queueFamilyIndexGraphics;
+
+    std::vector<VkQueueFamilyProperties> queueFamilyVector;
+    uint32_t queueFamilyCount;
+
+    VkQueue graphicsQueue;
 };
 
 graphicsCard currGraphicsCard;
@@ -133,17 +141,27 @@ void getGraphicsCard(VkInstance& instance, graphicsCard& graphicsCardStruct)
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
+
         bool cardSupportsGraphics = false;
+        uint32_t queueFamilyIndexGraphics = 0;
         for (const auto& queueFamily : queueFamilies) {
+            
+            //Increment until we reach a graphics family.
+            ++queueFamilyIndexGraphics;
+
             if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 cardSupportsGraphics = true;
                 break;
             }
         }
 
+        graphicsCardStruct.queueFamilyIndexGraphics = queueFamilyIndexGraphics;
         graphicsCardStruct.deviceProperties = deviceProperties;
         graphicsCardStruct.deviceFeatures = deviceFeatures;
         graphicsCardStruct.physicalDevice = device;
+        graphicsCardStruct.queueFamilyVector = queueFamilies;
+        graphicsCardStruct.queueFamilyCount = queueFamilyCount;
+
         if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
             //Shows graphics card details too
@@ -156,16 +174,45 @@ void getGraphicsCard(VkInstance& instance, graphicsCard& graphicsCardStruct)
     }
 
 }
-//
-//void makeGraphicsLogicalDevice(VkPhysicalDevice& graphicsCardDevice)
-//{
-//    VkDeviceCreateInfo createInfo{};
-//    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-//    
-//    if (vkCreateDevice(graphicsCardDevice, &createInfo, nullptr, &logicalDeviceGraphicsCard) != VK_SUCCESS) {
-//        throw std::runtime_error("failed to create logical device!");
-//    }
-//}
+
+void makeGraphicsLogicalDevice(graphicsCard& graphicsCardStruct)
+{
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = graphicsCardStruct.queueFamilyIndexGraphics;
+    queueCreateInfo.queueCount = 1;
+
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    
+    createInfo.pEnabledFeatures = &graphicsCardStruct.deviceFeatures;
+    
+    createInfo.enabledExtensionCount = 0;
+
+    createInfo.enabledLayerCount = g_validationLayers.size();
+    createInfo.ppEnabledLayerNames = g_validationLayers.data();
+
+
+    if (vkCreateDevice(graphicsCardStruct.physicalDevice, &createInfo, nullptr, &graphicsCardStruct.logicalDevice) != VK_SUCCESS) {
+        std::string errorMsg = "failed to create logical device for: ";
+        errorMsg += graphicsCardStruct.deviceProperties.deviceName;
+        throw std::runtime_error(errorMsg);
+    }
+
+
+    //How many queues you want to create from this call
+    uint32_t numGraphicsQueues = 0;
+    vkGetDeviceQueue(graphicsCardStruct.logicalDevice, graphicsCardStruct.queueFamilyIndexGraphics, numGraphicsQueues, &graphicsCardStruct.graphicsQueue);
+
+}
 
 //Creating a wrapper just to call one function and a loop is good game design
 void queryExtensions(uint32_t &extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
@@ -200,6 +247,11 @@ int setupPrototype()
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(currGraphicsCard.physicalDevice, &deviceProperties);
     std::cout << "Graphics Card Chosen: " << deviceProperties.deviceName << "\n";
+
+    makeGraphicsLogicalDevice(currGraphicsCard);
+
+
+
 
     return 0;
 }
