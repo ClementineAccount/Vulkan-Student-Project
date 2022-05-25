@@ -89,11 +89,30 @@ struct graphicsCard
 graphicsCard currGraphicsCard;
 
 
+struct imageContainer
+{
+    std::vector<VkImage> swapChainImages;
+    std::vector<VkImageView> swapChainImageViews;
+};
+
+
+struct swapChainContainer
+{
+    VkPresentModeKHR presentMode;
+    VkSurfaceFormatKHR surfaceFormat;
+    VkExtent2D swapChainExtent;
+
+    imageContainer swapChainImageContainer;
+};
+
+
+
 //for vksurface, vkimage and swap chain buffer stuff
 struct presentationContainer
 {
     VkSurfaceKHR win32Surface;
     VkQueue presentationQueue;
+    swapChainContainer swapChain;
 };
 
 presentationContainer currPresentation;
@@ -313,6 +332,71 @@ int setupPrototype()
 }
 
 
+//To Do: Add the error checking for the VK Result stuff here
+int createSwapChain()
+{
+    //Adapted from: https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Swap_chain
+    //get the swap chain details
+    struct SwapChainSupportDetails {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+
+    SwapChainSupportDetails details;
+   
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, 
+        &details.capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &formatCount, nullptr);
+
+    if (formatCount != 0) {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &formatCount, details.formats.data());
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &presentModeCount, nullptr);
+
+    if (presentModeCount != 0) {
+        details.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &presentModeCount, details.presentModes.data());
+    }
+
+    VkSurfaceFormatKHR surfaceFormat;
+    for (const auto& availableFormat : details.formats) {
+        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            surfaceFormat = availableFormat;
+            break;
+        }
+    }
+
+
+    //https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkPresentModeKHR.html
+    // To Do: Understand the intituive differences between MAILBOX and FIFO (because I don't atm)
+    //Default is FIFO
+    VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    //Prefer MAILBOX over FIFO
+    for (const auto& availablePresentMode : details.presentModes) {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            presentMode = availablePresentMode;
+            break;
+        }
+    }
+
+    VkExtent2D swapChainExtent = details.capabilities.currentExtent;
+
+    currPresentation.swapChain.presentMode = presentMode;
+    currPresentation.swapChain.surfaceFormat = surfaceFormat;
+    currPresentation.swapChain.swapChainExtent = swapChainExtent;
+
+    std::cout << "swap chain created for presentation\n";
+    return 1;
+}
+
 //Pass in the win32 api window
 int setupSurface(HWND hwnd, HINSTANCE hInstance)
 {
@@ -433,7 +517,7 @@ int WINAPI WinMain(
     // 
     // //cant seem to pass hWnd inside. Not sure why will check it out later
     setupSurface(hWnd, hInstance);
-
+    createSwapChain();
 
     // The parameters to ShowWindow explained:
     // hWnd: the value returned from CreateWindow
