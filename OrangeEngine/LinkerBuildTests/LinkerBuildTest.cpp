@@ -56,12 +56,22 @@ bool endEarly = true;
 constexpr int windowWidth = 800;
 constexpr int windowHeight = 600;
 
+struct graphicsCard
+{
+    VkPhysicalDevice physicalDevice;
+    VkDevice logicalDevice;
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+};
 
-VkPhysicalDevice physicalDeviceGraphicsCard;
+graphicsCard currGraphicsCard;
+
+// Use validation layers if this is a debug build
+std::vector<const char*> g_validationLayers;
+
 
 int vulkanDefault()
 {
-    physicalDeviceGraphicsCard = nullptr;
     return 0;
 }
 
@@ -90,11 +100,11 @@ void createVulkanInstances(VkInstance& instance)
     vulkanDefault();
 }
 
-
 //Adapted from: https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Physical_devices_and_queue_families
-void getGraphicsCard(VkInstance& instance, VkPhysicalDevice& graphicsCardDevice)
+void getGraphicsCard(VkInstance& instance, graphicsCard& graphicsCardStruct)
 {
     //Go through each device to find a dedicated graphics card
+    
 
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -131,18 +141,31 @@ void getGraphicsCard(VkInstance& instance, VkPhysicalDevice& graphicsCardDevice)
             }
         }
 
-        graphicsCardDevice = device;
+        graphicsCardStruct.deviceProperties = deviceProperties;
+        graphicsCardStruct.deviceFeatures = deviceFeatures;
+        graphicsCardStruct.physicalDevice = device;
         if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
+            //Shows graphics card details too
             return;
         }
     }
 
-    if (graphicsCardDevice == VK_NULL_HANDLE) {
+    if (graphicsCardStruct.physicalDevice == VK_NULL_HANDLE) {
         throw std::runtime_error("no graphics device found");
     }
 
 }
+//
+//void makeGraphicsLogicalDevice(VkPhysicalDevice& graphicsCardDevice)
+//{
+//    VkDeviceCreateInfo createInfo{};
+//    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+//    
+//    if (vkCreateDevice(graphicsCardDevice, &createInfo, nullptr, &logicalDeviceGraphicsCard) != VK_SUCCESS) {
+//        throw std::runtime_error("failed to create logical device!");
+//    }
+//}
 
 //Creating a wrapper just to call one function and a loop is good game design
 void queryExtensions(uint32_t &extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
@@ -161,8 +184,25 @@ void queryExtensions(uint32_t &extensionCountRef, std::vector<VkExtensionPropert
 }
 
 
+//Prototype function for setting up a 
+int setupPrototype()
+{
 
+#if defined(_DEBUG)
+    g_validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+#endif
 
+    //Attempt to create an instance
+    createVulkanInstances(gVkInstance);
+    queryExtensions(gExtensionCount, gExtensionVector);
+    getGraphicsCard(gVkInstance, currGraphicsCard);
+
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(currGraphicsCard.physicalDevice, &deviceProperties);
+    std::cout << "Graphics Card Chosen: " << deviceProperties.deviceName << "\n";
+
+    return 0;
+}
 
 int main()
 {
@@ -170,19 +210,8 @@ int main()
     //::ShowWindow(::GetConsoleWindow(), SW_SHOW);
     std::cout << "Hello Console.";
 
-    // Use validation layers if this is a debug build
-    std::vector<const char*> layers;
-#if defined(_DEBUG)
-    layers.push_back("VK_LAYER_KHRONOS_validation");
-#endif
+    setupPrototype();
 
-    //Attempt to create an instance
-    createVulkanInstances(gVkInstance);
-    queryExtensions(gExtensionCount, gExtensionVector);
-    getGraphicsCard(gVkInstance, physicalDeviceGraphicsCard);
-
-    if (physicalDeviceGraphicsCard != VK_NULL_HANDLE)
-        std::cout << "graphics card found :)\n";
 
     return WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
