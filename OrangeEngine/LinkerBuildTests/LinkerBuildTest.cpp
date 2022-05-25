@@ -98,10 +98,11 @@ struct imageContainer
 
 struct swapChainContainer
 {
+    VkSwapchainKHR swapChain;
+
     VkPresentModeKHR presentMode;
     VkSurfaceFormatKHR surfaceFormat;
     VkExtent2D swapChainExtent;
-
     imageContainer swapChainImageContainer;
 };
 
@@ -112,7 +113,7 @@ struct presentationContainer
 {
     VkSurfaceKHR win32Surface;
     VkQueue presentationQueue;
-    swapChainContainer swapChain;
+    swapChainContainer swapChainContainerInstance;
 };
 
 presentationContainer currPresentation;
@@ -237,7 +238,7 @@ void getGraphicsCard(VkInstance& instance, graphicsCard& graphicsCardStruct)
 
         if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            //Shows graphics card details too
+            //Shows graphics card supportDetails too
             return;
         }
     }
@@ -336,43 +337,41 @@ int setupPrototype()
 int createSwapChain()
 {
     //Adapted from: https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Swap_chain
-    //get the swap chain details
+    //get the swap chain supportDetails
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR capabilities;
         std::vector<VkSurfaceFormatKHR> formats;
         std::vector<VkPresentModeKHR> presentModes;
     };
 
-    SwapChainSupportDetails details;
+    SwapChainSupportDetails supportDetails;
    
-
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, 
-        &details.capabilities);
+        &supportDetails.capabilities);
 
     uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &formatCount, nullptr);
 
     if (formatCount != 0) {
-        details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &formatCount, details.formats.data());
+        supportDetails.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &formatCount, supportDetails.formats.data());
     }
 
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &presentModeCount, nullptr);
 
     if (presentModeCount != 0) {
-        details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &presentModeCount, details.presentModes.data());
+        supportDetails.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(currGraphicsCard.physicalDevice, currPresentation.win32Surface, &presentModeCount, supportDetails.presentModes.data());
     }
 
     VkSurfaceFormatKHR surfaceFormat;
-    for (const auto& availableFormat : details.formats) {
+    for (const auto& availableFormat : supportDetails.formats) {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             surfaceFormat = availableFormat;
             break;
         }
     }
-
 
     //https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkPresentModeKHR.html
     // To Do: Understand the intituive differences between MAILBOX and FIFO (because I don't atm)
@@ -380,20 +379,59 @@ int createSwapChain()
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
     //Prefer MAILBOX over FIFO
-    for (const auto& availablePresentMode : details.presentModes) {
+    for (const auto& availablePresentMode : supportDetails.presentModes) {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
             presentMode = availablePresentMode;
             break;
         }
     }
 
-    VkExtent2D swapChainExtent = details.capabilities.currentExtent;
+    VkExtent2D swapChainExtent = supportDetails.capabilities.currentExtent;
 
-    currPresentation.swapChain.presentMode = presentMode;
-    currPresentation.swapChain.surfaceFormat = surfaceFormat;
-    currPresentation.swapChain.swapChainExtent = swapChainExtent;
 
+
+    uint32_t imageCount = supportDetails.capabilities.minImageCount + 1;
+    if (supportDetails.capabilities.maxImageCount > 0 && imageCount > supportDetails.capabilities.maxImageCount) {
+        imageCount = supportDetails.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = currPresentation.win32Surface;
+
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = currPresentation.swapChainContainerInstance.swapChainExtent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    //Assume present family is same as graphics family because we doing QUICK PROTOTYPING
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    createInfo.preTransform = supportDetails.capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+    VkResult result = vkCreateSwapchainKHR(currGraphicsCard.logicalDevice, &createInfo, nullptr, &currPresentation.swapChainContainerInstance.swapChain);
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("cant create swap chain");
+    }
     std::cout << "swap chain created for presentation\n";
+
+    vkGetSwapchainImagesKHR(currGraphicsCard.logicalDevice, currPresentation.swapChainContainerInstance.swapChain, &imageCount, nullptr);
+    
+    currPresentation.swapChainContainerInstance.swapChainImageContainer.swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(currGraphicsCard.logicalDevice, currPresentation.swapChainContainerInstance.swapChain, &imageCount, currPresentation.swapChainContainerInstance.swapChainImageContainer.swapChainImages.data());
+
+
+    currPresentation.swapChainContainerInstance.presentMode = presentMode;
+    currPresentation.swapChainContainerInstance.surfaceFormat = surfaceFormat;
+    currPresentation.swapChainContainerInstance.swapChainExtent = swapChainExtent;
+
     return 1;
 }
 
