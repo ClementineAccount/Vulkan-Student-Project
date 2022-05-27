@@ -169,6 +169,16 @@ namespace VulkanProject
             }
         }
 
+        void PrintDebug()
+        {
+            //Faster than multiple couts
+            std::string outputString;
+            for (std::string const& str : VulkanProject::Debugging::debugLog)
+            {
+                outputString += str + "\n\n";
+            }
+            std::cout << outputString;
+        }
     }
 
     struct queueContainer
@@ -214,6 +224,8 @@ namespace VulkanProject
 
     void createVulkanInstances(VkInstance& instance)
     {
+        std::cout << "createVulkanInstances()\n";
+
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Linker Test";
@@ -252,7 +264,7 @@ namespace VulkanProject
     void getGraphicsCard(VkInstance& instance, graphicsCard& graphicsCardStruct)
     {
         //Go through each device to find a dedicated graphics card
-
+        std::cout << "getGraphicsCard()\n";
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
         if (deviceCount == 0) {
@@ -319,6 +331,7 @@ namespace VulkanProject
 
     void makeGraphicsLogicalDevice(graphicsCard& graphicsCardStruct)
     {
+        std::cout << "makeGraphicsLogicalDevice()\n";
         VkDeviceQueueCreateInfo queueCreateInfo{};
 
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -397,31 +410,6 @@ namespace VulkanProject
         return 0;
     }
 
-    //from https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Image_views
-    //void createImageViews(std::vector<VkImageView>& swapChainImageViews, std::vector<VkImage>& swapChainImages) {
-    //    swapChainImageViews.resize(swapChainImages.size());
-    //
-    //    for (size_t i = 0; i < swapChainImages.size(); i++) {
-    //        VkImageViewCreateInfo createInfo{};
-    //        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    //        createInfo.image = swapChainImages[i];
-    //        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    //        createInfo.format = swapChainImageFormat;
-    //        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    //        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    //        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    //        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    //        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    //        createInfo.subresourceRange.baseMipLevel = 0;
-    //        createInfo.subresourceRange.levelCount = 1;
-    //        createInfo.subresourceRange.baseArrayLayer = 0;
-    //        createInfo.subresourceRange.layerCount = 1;
-    //
-    //        if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
-    //            throw std::runtime_error("failed to create image views!");
-    //        }
-    //    }
-    //}
 
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
@@ -471,6 +459,7 @@ namespace VulkanProject
     //To Do: Add the error checking for the VK Result stuff here
     int createSwapChain()
     {
+        std::cout << "createSwapChain()\n";
         //Adapted from: https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Swap_chain
         //get the swap chain supportDetails
        
@@ -526,6 +515,43 @@ namespace VulkanProject
         return 1;
     }
 
+    void createImageViews() {
+        std::cout << "createImageViews()\n";
+        swapChainImageViews.resize(swapChainImages.size());
+
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            VkImageViewCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            createInfo.image = swapChainImages[i];
+            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            createInfo.format = swapChainImageFormat;
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            createInfo.subresourceRange.baseMipLevel = 0;
+            createInfo.subresourceRange.levelCount = 1;
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.layerCount = 1;
+
+            if (vkCreateImageView(currGraphicsCard.logicalDevice, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+                throw std::runtime_error("createImageViews() failed.");
+            }
+        }
+    }
+
+    struct WinMainData
+    {
+        HINSTANCE hInstance;
+        WNDCLASSEX wcex;
+        HWND hWnd;
+
+        MSG msg;
+    };
+
+    WinMainData currWinMainData;
+
     //Pass in the win32 api window
     int setupSurface(HWND hwnd, HINSTANCE hInstance)
     {
@@ -552,17 +578,13 @@ namespace VulkanProject
         std::cout << "presentation queue created\n";
     }
 
-
-    struct WinMainData
+    int initVulkanPresentation()
     {
-        HINSTANCE hInstance;
-        WNDCLASSEX wcex;
-        HWND hWnd;
-
-        MSG msg;
-    };
-
-    WinMainData currWinMainData;
+        setupSurface(currWinMainData.hWnd, currWinMainData.hInstance);
+        createSwapChain();
+        createImageViews();
+        return 0;
+    }
 
     int WINAPI WinMain(
         _In_ HINSTANCE hInstance,
@@ -634,8 +656,7 @@ namespace VulkanProject
         //Tell vulkan we got a win32 api window
         // 
         // //cant seem to pass hWnd inside. Not sure why will check it out later
-        setupSurface(currWinMainData.hWnd, hInstance);
-        createSwapChain();
+
     }
 
     //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -700,8 +721,13 @@ namespace VulkanProject
     void cleanup()
     {
         std::cout << "cleanup()\n";
+
+        for (auto imageView : swapChainImageViews) {
+            vkDestroyImageView(currGraphicsCard.logicalDevice, imageView, nullptr);
+        }
+
+        vkDestroyDevice(currGraphicsCard.logicalDevice, nullptr);
         vkDestroyInstance(gVkInstance, nullptr);
-        //vkDestroyDevice(currGraphicsCard.logicalDevice, nullptr);
     }
 }
 
@@ -720,18 +746,16 @@ int main()
 
     VulkanProject::WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
+    VulkanProject::initVulkanPresentation();
+
     if (VulkanProject::isDebugCallbackOutput)
     {
-        //Faster than multiple couts
-        std::string outputString;
-        for (std::string const& str : VulkanProject::Debugging::debugLog)
-        {
-            outputString += str + "\n\n";
-        }
-        std::cout << outputString;
+        VulkanProject::Debugging::PrintDebug();
     }
     
     VulkanProject::UpdateWinMain();
+
+    VulkanProject::cleanup();
 }
 
 
