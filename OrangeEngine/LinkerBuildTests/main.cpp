@@ -37,7 +37,7 @@
 
 namespace VulkanProject
 {
-    constexpr bool isDebugCallbackOutput = false;
+    constexpr bool isDebugCallbackOutput = true;
 
     // The main window class name.
     static TCHAR szWindowClass[] = _T("DesktopApp");
@@ -722,10 +722,13 @@ int main()
 
     if (VulkanProject::isDebugCallbackOutput)
     {
+        //Faster than multiple couts
+        std::string outputString;
         for (std::string const& str : VulkanProject::Debugging::debugLog)
         {
-            std::cout << str << "\n";
+            outputString += str + "\n\n";
         }
+        std::cout << outputString;
     }
     
     VulkanProject::UpdateWinMain();
