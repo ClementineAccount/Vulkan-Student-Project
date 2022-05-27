@@ -57,6 +57,7 @@ namespace VulkanProject
     VkInstance gVkInstance;
     VkSurfaceKHR win32Surface;
     VkQueue presentationQueue;
+    VkQueue graphicsQueue;
 
     VkSwapchainKHR swapChain;
     VkPresentModeKHR presentMode;
@@ -103,7 +104,8 @@ namespace VulkanProject
             }
 
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, win32Surface, &presentSupport);
+            if (win32Surface != nullptr)
+                vkGetPhysicalDeviceSurfaceSupportKHR(device, i, win32Surface, &presentSupport);
 
             if (presentSupport) {
                 indices.presentationFamilyIndex = i;
@@ -181,17 +183,6 @@ namespace VulkanProject
         }
     }
 
-    struct queueContainer
-    {
-        VkQueue queue;
-        uint32_t queueFamilyIndex;
-
-        std::vector<VkQueueFamilyProperties> queueFamilyVector;
-        uint32_t queueFamilyCount;
-    };
-
-    queueContainer graphicsQueueContainer;
-
     struct graphicsCard
     {
         VkPhysicalDevice physicalDevice;
@@ -199,7 +190,6 @@ namespace VulkanProject
         VkPhysicalDeviceProperties deviceProperties;
         VkPhysicalDeviceFeatures deviceFeatures;
 
-        queueContainer graphicsQueueContainer;
     };
 
     graphicsCard currGraphicsCard;
@@ -312,10 +302,6 @@ namespace VulkanProject
             graphicsCardStruct.deviceFeatures = deviceFeatures;
             graphicsCardStruct.physicalDevice = device;
 
-            graphicsCardStruct.graphicsQueueContainer.queueFamilyIndex = queueFamilyIndexGraphics;
-            graphicsCardStruct.graphicsQueueContainer.queueFamilyVector = queueFamilies;
-            graphicsCardStruct.graphicsQueueContainer.queueFamilyCount = queueFamilyCount;
-
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
             {
                 //Shows graphics card supportDetails too
@@ -329,39 +315,51 @@ namespace VulkanProject
 
     }
 
-    void makeGraphicsLogicalDevice(graphicsCard& graphicsCardStruct)
+    void makeGraphicsLogicalDevice()
     {
         std::cout << "makeGraphicsLogicalDevice()\n";
         VkDeviceQueueCreateInfo queueCreateInfo{};
 
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = graphicsCardStruct.graphicsQueueContainer.queueFamilyIndex;
-        queueCreateInfo.queueCount = 1;
+        //Gets the queues for the card again for presentation now that the surface is created
+        QueueFamilyIndices indices = findQueueFamilies(currGraphicsCard.physicalDevice);
 
-        float queuePriority = 1.0f;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+        float graphicsQueuePriority = 1.0f;
+        VkDeviceQueueCreateInfo queueCreateGraphics{};
+        queueCreateGraphics.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateGraphics.queueFamilyIndex = indices.graphicsFamilyIndex;
+        queueCreateGraphics.queueCount = 1;
+        queueCreateGraphics.pQueuePriorities = &graphicsQueuePriority;
 
+        float presentQueuePriority = 1.0f;
+        VkDeviceQueueCreateInfo queueCreatePresentation{};
+        queueCreatePresentation.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreatePresentation.queueFamilyIndex = indices.presentationFamilyIndex;
+        queueCreatePresentation.queueCount = 1;
+        queueCreatePresentation.pQueuePriorities = &presentQueuePriority;
+
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfoVector;
+        queueCreateInfoVector.push_back(queueCreateGraphics);
+        queueCreateInfoVector.push_back(queueCreatePresentation);
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
         createInfo.queueCreateInfoCount = 1;
-        createInfo.pQueueCreateInfos = &queueCreateInfo;
+        createInfo.pQueueCreateInfos = queueCreateInfoVector.data();
 
-        createInfo.pEnabledFeatures = &graphicsCardStruct.deviceFeatures;
+        createInfo.pEnabledFeatures = &currGraphicsCard.deviceFeatures;
 
         createInfo.enabledLayerCount = g_validationLayers.size();
         createInfo.ppEnabledLayerNames = g_validationLayers.data();
 
-
         //Get extensions for graphics card
 
         uint32_t extensionCountGraphics = 0;
-        vkEnumerateDeviceExtensionProperties(graphicsCardStruct.physicalDevice, nullptr, &extensionCountGraphics, nullptr);
+        vkEnumerateDeviceExtensionProperties(currGraphicsCard.physicalDevice, nullptr, &extensionCountGraphics, nullptr);
         std::vector<VkExtensionProperties> extensionGraphicsVector(extensionCountGraphics);
 
         VkResult result;
-        result = vkEnumerateDeviceExtensionProperties(graphicsCardStruct.physicalDevice, nullptr, &extensionCountGraphics, extensionGraphicsVector.data());
+        result = vkEnumerateDeviceExtensionProperties(currGraphicsCard.physicalDevice, nullptr, &extensionCountGraphics, extensionGraphicsVector.data());
 
         //createInfo.enabledExtensionCount = extensionCountGraphics;
 
@@ -374,18 +372,15 @@ namespace VulkanProject
         createInfo.enabledExtensionCount = extensionNames.size();
         createInfo.ppEnabledExtensionNames = extensionNames.data();
 
-        result = vkCreateDevice(graphicsCardStruct.physicalDevice, &createInfo, nullptr, &graphicsCardStruct.logicalDevice);
+        result = vkCreateDevice(currGraphicsCard.physicalDevice, &createInfo, nullptr, &currGraphicsCard.logicalDevice);
         if (result != VK_SUCCESS) {
             std::string errorMsg = "failed to create logical device for: ";
-            errorMsg += graphicsCardStruct.deviceProperties.deviceName;
+            errorMsg += currGraphicsCard.deviceProperties.deviceName;
             throw std::runtime_error(errorMsg);
         }
 
-
-        //How many queues you want to create from this call
-        uint32_t numGraphicsQueues = 0;
-        vkGetDeviceQueue(graphicsCardStruct.logicalDevice, graphicsCardStruct.graphicsQueueContainer.queueFamilyIndex, numGraphicsQueues, &graphicsCardStruct.graphicsQueueContainer.queue);
-
+        vkGetDeviceQueue(currGraphicsCard.logicalDevice, indices.graphicsFamilyIndex, 0, &graphicsQueue);
+        vkGetDeviceQueue(currGraphicsCard.logicalDevice, indices.presentationFamilyIndex, 0, &presentationQueue);
     }
 
 
@@ -405,16 +400,18 @@ namespace VulkanProject
         vkGetPhysicalDeviceProperties(currGraphicsCard.physicalDevice, &deviceProperties);
         std::cout << "Graphics Card Chosen: " << deviceProperties.deviceName << "\n";
 
-        makeGraphicsLogicalDevice(currGraphicsCard);
+        makeGraphicsLogicalDevice();
 
         return 0;
     }
 
 
 
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats, 
+        VkFormat format, VkColorSpaceKHR colorSpace)
+        {
         for (const auto& availableFormat : availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            if (availableFormat.format == format && availableFormat.colorSpace == colorSpace) {
                 return availableFormat;
             }
         }
@@ -465,15 +462,13 @@ namespace VulkanProject
        
         SwapChainSupportDetails supportDetails = querySwapChainSupport(currGraphicsCard.physicalDevice);
 
-        surfaceFormat = chooseSwapSurfaceFormat(supportDetails.formats);
+        surfaceFormat = chooseSwapSurfaceFormat(supportDetails.formats, VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
         presentMode = chooseSwapPresentMode(supportDetails.presentModes);
 
         supportDetails.capabilities.currentExtent.height = windowHeight;
         supportDetails.capabilities.currentExtent.height = windowWidth;
 
         swapChainExtent = supportDetails.capabilities.currentExtent;
-
-
 
         uint32_t imageCount = supportDetails.capabilities.minImageCount + 1;
         if (supportDetails.capabilities.maxImageCount > 0 && imageCount > supportDetails.capabilities.maxImageCount) {
@@ -493,6 +488,7 @@ namespace VulkanProject
 
         //Assume present family is same as graphics family because we doing QUICK PROTOTYPING
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
 
         createInfo.preTransform = supportDetails.capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -515,6 +511,12 @@ namespace VulkanProject
         return 1;
     }
 
+    void createImage()
+    {
+
+
+    }
+
     void createImageViews() {
         std::cout << "createImageViews()\n";
         swapChainImageViews.resize(swapChainImages.size());
@@ -522,9 +524,12 @@ namespace VulkanProject
         for (size_t i = 0; i < swapChainImages.size(); i++) {
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+
             createInfo.image = swapChainImages[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             createInfo.format = swapChainImageFormat;
+
+
             createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -539,6 +544,14 @@ namespace VulkanProject
                 throw std::runtime_error("createImageViews() failed.");
             }
         }
+    }
+
+    void cleanupSwapChain() {
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            vkDestroyImageView(currGraphicsCard.logicalDevice, swapChainImageViews[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
     }
 
     struct WinMainData
@@ -570,21 +583,51 @@ namespace VulkanProject
             std::cout << "Created win32api window surface\n";
         }
 
-        //Also get the presentation queue here (could prob move this honestly)
-        vkGetDeviceQueue(currGraphicsCard.logicalDevice, currGraphicsCard.graphicsQueueContainer.queueFamilyIndex,
-            0, &presentationQueue);
+        QueueFamilyIndices queueIndices = findQueueFamilies(currGraphicsCard.physicalDevice);
 
+        //Also get the presentation queue here (could prob move this honestly)
+        vkGetDeviceQueue(currGraphicsCard.logicalDevice, queueIndices.presentationFamilyIndex, 0, &presentationQueue);
 
         std::cout << "presentation queue created\n";
     }
 
-    int initVulkanPresentation()
+
+    //Finally some code I am not lifting from the tutorial. Test if I can draw straight to the surface without a renderpass
+    void presentFrameSimple()
     {
-        setupSurface(currWinMainData.hWnd, currWinMainData.hInstance);
-        createSwapChain();
-        createImageViews();
-        return 0;
+        //Acquire an image that can be used
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(currGraphicsCard.logicalDevice, swapChain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
+
+        VkPresentInfoKHR presentInfo;
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.pNext = nullptr;
+
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &swapChain;
+        presentInfo.pImageIndices = &imageIndex;
+
+        //Implement semaphores later
+        presentInfo.waitSemaphoreCount = 0;
+        presentInfo.pWaitSemaphores = nullptr;
+        presentInfo.pResults = nullptr;
+
+       
+
+        VkResult result = vkQueuePresentKHR(presentationQueue, &presentInfo);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            //What happens if I just ignore it?
+           /* cleanupSwapChain();
+            createSwapChain();
+            createImageViews();
+            presentFrameSimple();
+            std::cout << "Try draw again\n";*/
+        }
+        else if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to present swap chain image!");
+        }
     }
+
 
     int WINAPI WinMain(
         _In_ HINSTANCE hInstance,
@@ -653,10 +696,9 @@ namespace VulkanProject
             return 1;
         }
 
-        //Tell vulkan we got a win32 api window
-        // 
-        // //cant seem to pass hWnd inside. Not sure why will check it out later
 
+
+        VulkanProject::setupSurface(currWinMainData.hWnd, currWinMainData.hInstance);
     }
 
     //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -685,12 +727,15 @@ namespace VulkanProject
             // End application-specific layout section.
 
             EndPaint(hWnd, &ps);
+
+
             break;
         case WM_DESTROY:
             PostQuitMessage(0);
             //cleanup(); //clear vulkan instances and stuff
             break;
         default:
+            
             return DefWindowProc(hWnd, message, wParam, lParam);
             break;
         }
@@ -705,6 +750,10 @@ namespace VulkanProject
         // nCmdShow: the fourth parameter from WinMain
         ShowWindow(currWinMainData.hWnd, SW_SHOWNORMAL);
         UpdateWindow(currWinMainData.hWnd);
+        createSwapChain();
+        createImageViews();
+        
+        presentFrameSimple();
 
         // Main message loop:
         MSG msg;
@@ -712,7 +761,10 @@ namespace VulkanProject
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            presentFrameSimple();
         }
+
+
 
         return (int)msg.wParam;
     }
@@ -742,16 +794,17 @@ int main()
     //::ShowWindow(::GetConsoleWindow(), SW_SHOW);
     std::cout << "Vulkan Student Project.";
 
+
     VulkanProject::setupPrototype();
 
     VulkanProject::WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
-    VulkanProject::initVulkanPresentation();
 
     if (VulkanProject::isDebugCallbackOutput)
     {
         VulkanProject::Debugging::PrintDebug();
     }
+
     
     VulkanProject::UpdateWinMain();
 
