@@ -5,10 +5,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
@@ -22,8 +18,8 @@
     <Filter Include="Source Files\main">
       <UniqueIdentifier>{ad9bc643-c427-46e6-bd8a-57cc73da0fc9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\VulkanBoilerplate">
-      <UniqueIdentifier>{5f5614f4-a933-47d7-a90e-9bd2a6bfd2a6}</UniqueIdentifier>
+    <Filter Include="Source Files\VulkanProject">
+      <UniqueIdentifier>{b8962af4-813a-417e-933d-c2caa7c79a96}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -48,12 +44,6 @@
     <ClInclude Include="imstb_truetype.h">
       <Filter>Source Files\DearImgui</Filter>
     </ClInclude>
-    <ClInclude Include="LinkerBuildTest.h">
-      <Filter>Source Files\main</Filter>
-    </ClInclude>
-    <ClInclude Include="VulkanInstance.h">
-      <Filter>Source Files\VulkanBoilerplate</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
@@ -74,7 +64,7 @@
     <ClCompile Include="imgui_widgets.cpp">
       <Filter>Source Files\DearImgui</Filter>
     </ClCompile>
-    <ClCompile Include="LinkerBuildTest.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files\main</Filter>
     </ClCompile>
   </ItemGroup>
