@@ -71,7 +71,9 @@ The project uses the following tutorial resources for Vulkan SDK and Win32 API b
 2. [xGPU](https://github.com/LIONant-depot/xGPU)
 3. [docs.microsoft.com](https://docs.microsoft.com/en-us/windows/win32/api/)
 4. [Official Vulkan SDK](https://vulkan.lunarg.com/doc/view/1.2.148.1/windows/getting_started.html)
-5. Tomas Arce CSD2150 Leture Recordings.
+5. [Vulkan Programming Guide - Graham Sellers](https://www.bookdepository.com/Vulkan-Programming-Guide-Graham-Sellers/9780134464541)
+6. [Vulkan Guide (For VKImage onto Swap Chain Buffer)](https://vkguide.dev/)
+7. Tomas Arce CSD2150 Leture Recordings.
 
 No other codebases were examined for this project.
 
@@ -84,3 +86,6 @@ Third-Party Libraries and Dependencies
 3. [Vulkan SDK](https://www.vulkan.org/)
 4. [tinyddsloader](https://github.com/benikabocha/tinyddsloader)
 5. [Doxygen](https://www.doxygen.nl/index.html)
+6. [GLM](https://github.com/g-truc/glm)*
+
+*might replace this if requested by Tomas in last days of submission
