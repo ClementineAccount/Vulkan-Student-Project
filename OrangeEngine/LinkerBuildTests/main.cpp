@@ -43,16 +43,17 @@ namespace VulkanProject
     static TCHAR szWindowClass[] = _T("DesktopApp");
 
     // The string that appears in the application's title bar.
-    static TCHAR szTitle[] = _T("Windows Desktop Guided Tour Application");
+    static TCHAR szTitle[] = _T("Vulkan Student Project : Clementine");
 
     // Stored instance handle for use in Win32 API calls such as FindResource
     HINSTANCE hInst;
 
-    // Forward declarations of functions included in this code module:
-    LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
     constexpr int windowWidth = 800;
     constexpr int windowHeight = 600;
+
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
 
     VkInstance gVkInstance;
     VkSurfaceKHR win32Surface;
@@ -193,6 +194,46 @@ namespace VulkanProject
     };
 
     graphicsCard currGraphicsCard;
+
+
+    void createCommandPool()
+    {
+        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(currGraphicsCard.physicalDevice);
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamilyIndex;
+
+
+        if (vkCreateCommandPool(currGraphicsCard.logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create command pool!");
+        }
+    }
+
+    void createCommandBuffer()
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = commandPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        if (vkAllocateCommandBuffers(currGraphicsCard.logicalDevice, &allocInfo, &commandBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+    }
+
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0; // Optional
+        beginInfo.pInheritanceInfo = nullptr; // Optional
+
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+    }
 
     // Use validation layers if this is a debug build
     std::vector<const char*> g_validationLayers;
@@ -402,6 +443,10 @@ namespace VulkanProject
 
         makeGraphicsLogicalDevice();
 
+        createCommandPool();
+
+        createCommandBuffer();
+
         return 0;
     }
 
@@ -419,9 +464,9 @@ namespace VulkanProject
         return availableFormats[0];
     }
 
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, VkPresentModeKHR presentMode) {
         for (const auto& availablePresentMode : availablePresentModes) {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            if (availablePresentMode == presentMode) {
                 return availablePresentMode;
             }
         }
@@ -463,12 +508,21 @@ namespace VulkanProject
         SwapChainSupportDetails supportDetails = querySwapChainSupport(currGraphicsCard.physicalDevice);
 
         surfaceFormat = chooseSwapSurfaceFormat(supportDetails.formats, VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
-        presentMode = chooseSwapPresentMode(supportDetails.presentModes);
+        presentMode = chooseSwapPresentMode(supportDetails.presentModes, VK_PRESENT_MODE_FIFO_KHR);
 
-        supportDetails.capabilities.currentExtent.height = windowHeight;
-        supportDetails.capabilities.currentExtent.height = windowWidth;
+        supportDetails.capabilities.currentExtent.height = static_cast<std::uint32_t>(windowHeight);
+        supportDetails.capabilities.currentExtent.width = static_cast<std::uint32_t>(windowWidth);
+
 
         swapChainExtent = supportDetails.capabilities.currentExtent;
+
+        VkSurfaceCapabilitiesKHR SurfaceCapabilities{};
+
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(currGraphicsCard.physicalDevice, win32Surface, &SurfaceCapabilities);
+
+        swapChainExtent.width  = SurfaceCapabilities.currentExtent.width;
+        swapChainExtent.height = SurfaceCapabilities.currentExtent.height;
+
 
         uint32_t imageCount = supportDetails.capabilities.minImageCount + 1;
         if (supportDetails.capabilities.maxImageCount > 0 && imageCount > supportDetails.capabilities.maxImageCount) {
@@ -554,6 +608,8 @@ namespace VulkanProject
         vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
     }
 
+
+
     struct WinMainData
     {
         HINSTANCE hInstance;
@@ -612,20 +668,82 @@ namespace VulkanProject
         presentInfo.pWaitSemaphores = nullptr;
         presentInfo.pResults = nullptr;
 
-       
+        //https://gist.github.com/TheServer201/26c280d0779423dc714da4a299636ff7
 
-        VkResult result = vkQueuePresentKHR(presentationQueue, &presentInfo);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-            //What happens if I just ignore it?
-           /* cleanupSwapChain();
-            createSwapChain();
-            createImageViews();
-            presentFrameSimple();
-            std::cout << "Try draw again\n";*/
+        //Create a clear buffer
+
+
+        
+
+        //Match the ones we use in imageview
+        VkImageSubresourceRange subresourceRange;
+
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subresourceRange.baseMipLevel = 0;
+        subresourceRange.levelCount = 1;
+        subresourceRange.baseArrayLayer = 0;
+        subresourceRange.layerCount = 1;
+
+        VkClearColorValue ClearColorValue = { 0.0, 0.0, 0.86, 0.0 };
+
+        VkCommandBufferBeginInfo CommandBufferBeginInfo;
+        CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        CommandBufferBeginInfo.pNext = NULL;
+        CommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        CommandBufferBeginInfo.pInheritanceInfo = NULL;
+
+        VkResult result;
+        result = vkBeginCommandBuffer(commandBuffer, &CommandBufferBeginInfo);
+        for (size_t i = 0; i < swapChainImages.size(); ++i)
+        {
+            vkCmdClearColorImage(commandBuffer, swapChainImages[i], VK_IMAGE_LAYOUT_GENERAL, &ClearColorValue, 1, &subresourceRange);
+           
         }
-        else if (result != VK_SUCCESS) {
+        result = vkEndCommandBuffer(commandBuffer);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 0;
+
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+
+
+        result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
+
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
+    }
+
+    bool isQuitting = false;
+
+     //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
+     //
+     //  PURPOSE:  Processes messages for the main window.
+     //
+     //  WM_PAINT    - Paint the main window
+     //  WM_DESTROY  - post a quit message and return
+    LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) noexcept
+    {
+        switch (message)
+        {
+        case WM_PAINT:
+            ValidateRect(hWnd, NULL);
+            break;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            isQuitting = true;
+            //cleanup(); //clear vulkan instances and stuff
+            break;
+        }
+
+        return DefWindowProc(hWnd, message, wParam, lParam);
     }
 
 
@@ -701,48 +819,7 @@ namespace VulkanProject
         VulkanProject::setupSurface(currWinMainData.hWnd, currWinMainData.hInstance);
     }
 
-    //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-    //
-    //  PURPOSE:  Processes messages for the main window.
-    //
-    //  WM_PAINT    - Paint the main window
-    //  WM_DESTROY  - post a quit message and return
-    LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-    {
-        PAINTSTRUCT ps;
-        HDC hdc;
-        TCHAR greeting[] = _T("Vulkan Linker Test");
-
-        switch (message)
-        {
-        case WM_PAINT:
-            hdc = BeginPaint(hWnd, &ps);
-
-            // Here your application is laid out.
-            // For this introduction, we just print out "Hello, Windows desktop!"
-            // in the top left corner.
-            TextOut(hdc,
-                5, 5,
-                greeting, _tcslen(greeting));
-            // End application-specific layout section.
-
-            EndPaint(hWnd, &ps);
-
-
-            break;
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            //cleanup(); //clear vulkan instances and stuff
-            break;
-        default:
-            
-            return DefWindowProc(hWnd, message, wParam, lParam);
-            break;
-        }
-
-        return 0;
-    }
-
+ 
     int UpdateWinMain()
     {
         // The parameters to ShowWindow explained:
@@ -752,17 +829,25 @@ namespace VulkanProject
         UpdateWindow(currWinMainData.hWnd);
         createSwapChain();
         createImageViews();
-        
-        presentFrameSimple();
-
-        // Main message loop:
+      
         MSG msg;
-        while (GetMessage(&msg, NULL, 0, 0))
+
+        //Render loop
+        while (!isQuitting)
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            static int num = 0;
+            ++num;
+            std::cout << "update: " << num << "\n";
             presentFrameSimple();
+
+            if (PeekMessage(&msg, currWinMainData.hWnd, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
         }
+
+
 
 
 
