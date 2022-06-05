@@ -22,6 +22,7 @@
 #include <fstream>
 #include <optional>
 
+#include <glm/glm.hpp>
 
 #include <unordered_map>
 
@@ -92,7 +93,46 @@ namespace VulkanProject
     VkPresentModeKHR presentMode;
     VkSurfaceFormatKHR surfaceFormat;
     VkExtent2D swapChainExtent;
+
+
+    struct Vertex {
+        glm::vec2 pos;
+        glm::vec3 color;
+
+        static VkVertexInputBindingDescription getBindingDescription() {
+            VkVertexInputBindingDescription bindingDescription{};
+            bindingDescription.binding = 0;
+            bindingDescription.stride = sizeof(Vertex);
+            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+            return bindingDescription;
+        }
+
+        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+
+            attributeDescriptions[0].binding = 0;
+            attributeDescriptions[0].location = 0;
+            attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+            attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+            attributeDescriptions[1].binding = 0;
+            attributeDescriptions[1].location = 1;
+            attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+            return attributeDescriptions;
+        }
+    };
+
+    const std::vector<Vertex> vertices = {
+        {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    };
     
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 
     VkFormat swapChainImageFormat;
 
@@ -439,6 +479,19 @@ namespace VulkanProject
     }
 
 
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(currGraphicsCard.physicalDevice, &memProperties);
+
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
+
+        throw std::runtime_error("failed to find suitable memory type!");
+    }
+
     void queryExtensions(uint32_t& extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
     {
         //gotta get the count first before u can put the stuff in that's how this works
@@ -454,7 +507,36 @@ namespace VulkanProject
             std::cout << '\t' << e.extensionName << '\n';
     }
 
+    void createVertexBuffer() {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+        if (vkCreateBuffer(currGraphicsCard.logicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create vertex buffer!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(currGraphicsCard.logicalDevice, vertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(currGraphicsCard.logicalDevice, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+        }
+
+        vkBindBufferMemory(currGraphicsCard.logicalDevice, vertexBuffer, vertexBufferMemory, 0);
+
+        void* data;
+        vkMapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+        memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+        vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
+    }
 
 
     void createVulkanInstances(VkInstance& instance)
@@ -762,11 +844,15 @@ namespace VulkanProject
         //No loading because the tutorial doesn't read data in just yet
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+
+        auto bindingDescription = Vertex::getBindingDescription();
+        auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
-        vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -1228,7 +1314,12 @@ namespace VulkanProject
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        VkBuffer vertexBuffers[] = { vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+        vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+
 
         vkCmdEndRenderPass(commandBuffer);
 
@@ -1459,8 +1550,10 @@ namespace VulkanProject
     {
         std::cout << "cleanup()\n";
 
-
         vkDeviceWaitIdle(VulkanProject::currGraphicsCard.logicalDevice);
+
+        vkDestroyBuffer(currGraphicsCard.logicalDevice, vertexBuffer, nullptr);
+        vkFreeMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(currGraphicsCard.logicalDevice, renderFinishedSemaphores[i], nullptr);
@@ -1550,7 +1643,11 @@ int main()
     VulkanProject::setupRenderPass();
     VulkanProject::setupGraphicsPipeline();
     VulkanProject::setupFrameBuffers();
+
     VulkanProject::createCommandPool();
+
+    VulkanProject::createVertexBuffer();
+
     VulkanProject::createCommandBuffers();
     VulkanProject::createSyncObjects();
 
