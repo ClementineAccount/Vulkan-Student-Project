@@ -67,6 +67,7 @@ namespace VulkanProject
     constexpr int windowHeight = 600;
 
     VkClearColorValue ClearColorValue = { 1.0, 0.0, 0.0, 0.0 };
+    VkClearValue triangleBackground = { 0.0f, 0.0f, 1.0f, 1.0f };
 
     //---To Do: Move this stuff to a proper global container pattern of sorts---
 
@@ -1207,7 +1208,7 @@ namespace VulkanProject
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = swapChainExtent;
 
-        VkClearValue clearColorReal = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+        VkClearValue clearColorReal = triangleBackground;
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColorReal;
 
@@ -1393,6 +1394,8 @@ namespace VulkanProject
             //std::cout << "update: " << num << "\n";
             //presentFrameSimple();
 
+            
+            drawTriangle();
 
             if (PeekMessage(&msg, currWinMainData.hWnd, 0, 0, PM_REMOVE))
             {
@@ -1400,7 +1403,6 @@ namespace VulkanProject
                 DispatchMessage(&msg);
             }
 
-            drawTriangle();
         }
 
 
