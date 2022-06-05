@@ -65,8 +65,8 @@ namespace VulkanProject
     // Stored instance handle for use in Win32 API calls such as FindResource
     HINSTANCE hInst;
 
-    constexpr int windowWidth = 800;
-    constexpr int windowHeight = 600;
+    constexpr int windowWidth = 1024;
+    constexpr int windowHeight = 768;
 
     uint32_t currentFrame = 0;
 
@@ -1237,7 +1237,34 @@ namespace VulkanProject
         }
     }
 
+    void cleanupSwapChain() {
+        for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
+            vkDestroyFramebuffer(currGraphicsCard.logicalDevice, swapChainFramebuffers[i], nullptr);
+        }
 
+        vkDestroyPipeline(currGraphicsCard.logicalDevice, graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(currGraphicsCard.logicalDevice, pipelineLayout, nullptr);
+        vkDestroyRenderPass(currGraphicsCard.logicalDevice, renderPass, nullptr);
+
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            vkDestroyImageView(currGraphicsCard.logicalDevice, swapChainImageViews[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
+    }
+
+    void recreateSwapChain() {
+
+        vkDeviceWaitIdle(currGraphicsCard.logicalDevice);
+
+        cleanupSwapChain();
+
+        createSwapChain();
+        createImageViews();
+        setupRenderPass();
+        setupGraphicsPipeline();
+        setupFrameBuffers();
+    }
 
 
     void drawTriangle()
@@ -1425,21 +1452,7 @@ namespace VulkanProject
         return (int)msg.wParam;
     }
 
-    void cleanupSwapChain() {
-        for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
-            vkDestroyFramebuffer(currGraphicsCard.logicalDevice, swapChainFramebuffers[i], nullptr);
-        }
 
-        vkDestroyPipeline(currGraphicsCard.logicalDevice, graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(currGraphicsCard.logicalDevice, pipelineLayout, nullptr);
-        vkDestroyRenderPass(currGraphicsCard.logicalDevice, renderPass, nullptr);
-
-        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-            vkDestroyImageView(currGraphicsCard.logicalDevice, swapChainImageViews[i], nullptr);
-        }
-
-        vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
-    }
 
 
     void cleanup()
