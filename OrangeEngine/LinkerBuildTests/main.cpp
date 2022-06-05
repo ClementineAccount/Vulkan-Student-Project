@@ -19,8 +19,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
-
+#include <fstream>
 #include <optional>
+
+
+#include <unordered_map>
 
 //Vulkan
 
@@ -33,11 +36,13 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 
-
+constexpr bool isTesting = true;
+constexpr bool isDebugCallbackOutput = false;
 
 namespace VulkanProject
 {
-    constexpr bool isDebugCallbackOutput = true;
+
+
 
     // The main window class name.
     static TCHAR szWindowClass[] = _T("DesktopApp");
@@ -48,9 +53,12 @@ namespace VulkanProject
     // Stored instance handle for use in Win32 API calls such as FindResource
     HINSTANCE hInst;
 
-
     constexpr int windowWidth = 800;
     constexpr int windowHeight = 600;
+
+    VkClearColorValue ClearColorValue = { 1.0, 0.0, 0.0, 0.0 };
+
+    //---To Do: Move this stuff to a proper global container pattern of sorts---
 
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
@@ -66,6 +74,11 @@ namespace VulkanProject
     VkExtent2D swapChainExtent;
 
     VkFormat swapChainImageFormat;
+
+    VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+
+    //---To Do: Move this stuff to a proper global container pattern of sorts---
 
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR capabilities;
@@ -184,6 +197,8 @@ namespace VulkanProject
         }
     }
 
+
+
     struct graphicsCard
     {
         VkPhysicalDevice physicalDevice;
@@ -194,6 +209,70 @@ namespace VulkanProject
     };
 
     graphicsCard currGraphicsCard;
+
+
+    //Shader stuff
+
+    std::string shaderFolderPath = "Shaders/";
+    std::string vertShaderName = "triShader.vert";
+    std::string fragShaderName = "triShader.frag";
+
+    std::unordered_map<std::string, VkShaderModule> shaderModuleMap;
+
+    std::vector<char> readShaderFile(const std::string& shaderFilePath)
+    {
+        std::ifstream file(shaderFilePath, std::ios::ate | std::ios::binary);
+
+        if (!file.is_open()) {
+            throw std::runtime_error("failed to open" + shaderFilePath);
+        }
+
+        //https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules
+
+        //Allocate a buffer for the fileSize based off the position read by ifstream
+
+        //tellg is at the last position of the binary stream and hence can be used to allocate the buffer size
+        size_t fileSize = (size_t)file.tellg(); 
+        std::vector<char> buffer(fileSize);
+
+        file.seekg(0);
+        file.read(buffer.data(), fileSize);
+
+        file.close();
+
+        return buffer;
+    }
+
+    //https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules
+    //https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkCreateShaderModule.html
+    VkShaderModule createShaderModule(const std::vector<char>& shaderBuffer, const std::string shaderName) {
+
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = shaderBuffer.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(shaderBuffer.data());
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(currGraphicsCard.logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create shader module for" + shaderName);
+        }
+        else
+        {
+            std::cout << "shader created for: " << shaderName << std::endl;
+        }
+
+        return shaderModule;
+    }
+
+
+    void createShader(std::string const& shaderName)
+    {
+        //Read the shaders from the filePath
+        std::string shaderFilePath = shaderFolderPath;
+        shaderFilePath += shaderName;
+        VkShaderModule shaderModule = createShaderModule(readShaderFile(shaderFilePath), shaderName);
+        shaderModuleMap.insert({ shaderName, shaderModule });
+    }
 
 
     void createCommandPool()
@@ -451,6 +530,155 @@ namespace VulkanProject
     }
 
 
+    //https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Render_passes
+    void setupRenderPass()
+    {
+
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = swapChainImageFormat;
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        //Textures and framebuffers in Vulkan are represented by VkImage objects with a certain pixel format, 
+        //however the layout of the pixels in memory can change based on what you're trying to do with an image. --> from the tutorial
+
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        //Subpass
+
+        VkAttachmentReference colorAttachmentRef{};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+
+        VkRenderPassCreateInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+
+        if (vkCreateRenderPass(currGraphicsCard.logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create render pass!");
+        }
+
+    }
+    
+    void setupGraphicsPipeline()
+    {
+        createShader(vertShaderName);
+        createShader(fragShaderName);
+
+        //Shader staging 
+
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+
+        vertShaderStageInfo.module = shaderModuleMap.at(vertShaderName);
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = shaderModuleMap.at(fragShaderName);
+        fragShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+        //https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Fixed_functions
+
+        //Vertex Inputs
+
+        //No loading because the tutorial doesn't read data in just yet
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount = 0;
+        vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)swapChainExtent.width;
+        viewport.height = (float)swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = swapChainExtent;
+
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.pViewports = &viewport;
+        viewportState.scissorCount = 1;
+        viewportState.pScissors = &scissor;
+
+        VkPipelineRasterizationStateCreateInfo rasterizer{};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE;
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+    }
+
+    void cleanupGraphicsPipeline()
+    {
+        for (auto& mod : shaderModuleMap)
+        {
+            vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
+        }
+    }
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats, 
         VkFormat format, VkColorSpaceKHR colorSpace)
@@ -608,8 +836,6 @@ namespace VulkanProject
         vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
     }
 
-
-
     struct WinMainData
     {
         HINSTANCE hInstance;
@@ -672,9 +898,6 @@ namespace VulkanProject
 
         //Create a clear buffer
 
-
-        
-
         //Match the ones we use in imageview
         VkImageSubresourceRange subresourceRange;
 
@@ -683,8 +906,6 @@ namespace VulkanProject
         subresourceRange.levelCount = 1;
         subresourceRange.baseArrayLayer = 0;
         subresourceRange.layerCount = 1;
-
-        VkClearColorValue ClearColorValue = { 0.0, 0.0, 0.86, 0.0 };
 
         VkCommandBufferBeginInfo CommandBufferBeginInfo;
         CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -835,9 +1056,9 @@ namespace VulkanProject
         //Render loop
         while (!isQuitting)
         {
-            static int num = 0;
-            ++num;
-            std::cout << "update: " << num << "\n";
+            //static int num = 0;
+            //++num;
+            //std::cout << "update: " << num << "\n";
             presentFrameSimple();
 
             if (PeekMessage(&msg, currWinMainData.hWnd, 0, 0, PM_REMOVE))
@@ -863,14 +1084,34 @@ namespace VulkanProject
             vkDestroyImageView(currGraphicsCard.logicalDevice, imageView, nullptr);
         }
 
+
+        vkDestroyPipelineLayout(currGraphicsCard.logicalDevice, pipelineLayout, nullptr);
+        vkDestroyRenderPass(currGraphicsCard.logicalDevice, renderPass, nullptr);
+
         vkDestroyDevice(currGraphicsCard.logicalDevice, nullptr);
         vkDestroyInstance(gVkInstance, nullptr);
+
     }
 }
 
 
+//Simple testing for specific functions 
+namespace Testing
+{
+    void testReadFile()
+    {
+        using namespace VulkanProject;
 
+        //Input by hand 
+        size_t expectedByteSizeVert = 387;
+        size_t expectedByteSizeFrag = 156;
 
+        assert(readShaderFile("Shaders/triShader.frag").size() == expectedByteSizeFrag);
+        assert(readShaderFile("Shaders/triShader.vert").size() == expectedByteSizeVert);
+
+        std::cout << "\n testReadFile() completed \n" << std::endl;
+    }
+}
 
 
 int main()
@@ -879,18 +1120,23 @@ int main()
     //::ShowWindow(::GetConsoleWindow(), SW_SHOW);
     std::cout << "Vulkan Student Project.";
 
+    if (isTesting)
+    {
+        Testing::testReadFile();
+    }
 
     VulkanProject::setupPrototype();
 
     VulkanProject::WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
-
-    if (VulkanProject::isDebugCallbackOutput)
+    VulkanProject::setupRenderPass();
+    VulkanProject::setupGraphicsPipeline();
+    
+    if (isDebugCallbackOutput)
     {
         VulkanProject::Debugging::PrintDebug();
     }
 
-    
     VulkanProject::UpdateWinMain();
 
     VulkanProject::cleanup();
