@@ -28,7 +28,10 @@
 //Vulkan
 
 //win32 api
+
 #define VK_USE_PLATFORM_WIN32_KHR
+
+
 #include <vulkan/vulkan.hpp>
 #include "VulkanInstance.h"
 #include <iostream>
@@ -39,9 +42,16 @@
 constexpr bool isTesting = true;
 constexpr bool isDebugCallbackOutput = false;
 
+
+
+
+
 namespace VulkanProject
 {
 
+    const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
 
 
     // The main window class name.
@@ -220,11 +230,15 @@ namespace VulkanProject
     graphicsCard currGraphicsCard;
 
 
+    // Use validation layers
+    std::vector<const char*> g_validationLayers;
+
+
     //Shader stuff
 
     std::string shaderFolderPath = "Shaders/";
-    std::string vertShaderName = "triShader.vert";
-    std::string fragShaderName = "triShader.frag";
+    std::string vertShaderName = "vert.spv";
+    std::string fragShaderName = "frag.spv";
 
     std::unordered_map<std::string, VkShaderModule> shaderModuleMap;
 
@@ -251,6 +265,102 @@ namespace VulkanProject
 
         return buffer;
     }
+
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+        return VK_FALSE;
+    }
+
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+        createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+    }
+
+
+
+
+    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+        if (func != nullptr) {
+            return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+        }
+        else {
+            return VK_ERROR_EXTENSION_NOT_PRESENT;
+        }
+    }
+
+    void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+        if (func != nullptr) {
+            func(instance, debugMessenger, pAllocator);
+        }
+    }
+
+    VkDebugUtilsMessengerEXT debugMessenger;
+
+    void setupDebugMessenger() {
+        if (!enableValidationLayers) return;
+
+        VkDebugUtilsMessengerCreateInfoEXT createInfo;
+        populateDebugMessengerCreateInfo(createInfo);
+
+        if (CreateDebugUtilsMessengerEXT(gVkInstance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+            throw std::runtime_error("failed to set up debug messenger!");
+        }
+    }
+
+
+
+    //std::vector<const char*> getRequiredExtensions() {
+    //    uint32_t glfwExtensionCount = 0;
+    //    const char** glfwExtensions;
+    //    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    //    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+    //    if (enableValidationLayers) {
+    //        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    //    }
+
+    //    return extensions;
+    //}
+
+    bool checkValidationLayerSupport() {
+        uint32_t layerCount;
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        for (const char* layerName : g_validationLayers) {
+            bool layerFound = false;
+
+            for (const auto& layerProperties : availableLayers) {
+                if (strcmp(layerName, layerProperties.layerName) == 0) {
+                    layerFound = true;
+                    break;
+                }
+            }
+
+            if (!layerFound) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+
 
     //https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules
     //https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkCreateShaderModule.html
@@ -323,8 +433,6 @@ namespace VulkanProject
         }
     }
 
-    // Use validation layers if this is a debug build
-    std::vector<const char*> g_validationLayers;
 
     void queryExtensions(uint32_t& extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
     {
@@ -341,9 +449,18 @@ namespace VulkanProject
             std::cout << '\t' << e.extensionName << '\n';
     }
 
+
+
+
     void createVulkanInstances(VkInstance& instance)
     {
         std::cout << "createVulkanInstances()\n";
+
+        g_validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+
+        if (!checkValidationLayerSupport()) {
+            throw std::runtime_error("validation layers requested, but not available!");
+        }
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -368,7 +485,31 @@ namespace VulkanProject
         for (auto const& extension : extensionVector)
             extensionNames.push_back(extension.extensionName);
 
+
         createInfo.ppEnabledExtensionNames = extensionNames.data();
+
+
+        //auto extensions = getRequiredExtensions();
+        //createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        //createInfo.ppEnabledExtensionNames = extensions.data();
+
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+        if (enableValidationLayers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(g_validationLayers.size());
+            createInfo.ppEnabledLayerNames = g_validationLayers.data();
+
+            populateDebugMessengerCreateInfo(debugCreateInfo);
+            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+        }
+        else {
+            createInfo.enabledLayerCount = 0;
+
+            createInfo.pNext = nullptr;
+        }
+
+        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create instance!");
+        }
 
 
         VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
@@ -487,6 +628,7 @@ namespace VulkanProject
         vkEnumerateDeviceExtensionProperties(currGraphicsCard.physicalDevice, nullptr, &extensionCountGraphics, nullptr);
         std::vector<VkExtensionProperties> extensionGraphicsVector(extensionCountGraphics);
 
+
         VkResult result;
         result = vkEnumerateDeviceExtensionProperties(currGraphicsCard.physicalDevice, nullptr, &extensionCountGraphics, extensionGraphicsVector.data());
 
@@ -497,6 +639,8 @@ namespace VulkanProject
         {
             extensionNames.push_back(p.extensionName);
         }
+
+
 
         createInfo.enabledExtensionCount = extensionNames.size();
         createInfo.ppEnabledExtensionNames = extensionNames.data();
@@ -516,7 +660,7 @@ namespace VulkanProject
     //Prototype function for setting up a vulka instance with an example surface view 
     int setupPrototype()
     {
-        g_validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+
 
         //Attempt to create an instance
 
@@ -533,6 +677,8 @@ namespace VulkanProject
 
         //createCommandPool();
         //createCommandBuffer();
+
+        checkValidationLayerSupport();
 
         return 0;
     }
@@ -559,7 +705,6 @@ namespace VulkanProject
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         //Subpass
-
         VkAttachmentReference colorAttachmentRef{};
         colorAttachmentRef.attachment = 0;
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -672,6 +817,18 @@ namespace VulkanProject
         colorBlending.blendConstants[1] = 0.0f;
         colorBlending.blendConstants[2] = 0.0f;
         colorBlending.blendConstants[3] = 0.0f;
+
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 0; // Optional
+        pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
+        pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+        pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+
+        if (vkCreatePipelineLayout(currGraphicsCard.logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create pipeline layout!");
+        }
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -809,6 +966,7 @@ namespace VulkanProject
         createInfo.surface = win32Surface;
 
         createInfo.minImageCount = imageCount;
+        swapChainImageFormat = surfaceFormat.format;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
         createInfo.imageExtent = swapChainExtent;
@@ -857,6 +1015,7 @@ namespace VulkanProject
             createInfo.image = swapChainImages[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             createInfo.format = swapChainImageFormat;
+          
 
 
             createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1048,9 +1207,10 @@ namespace VulkanProject
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = swapChainExtent;
 
-        VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+        VkClearValue clearColorReal = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
         renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        renderPassInfo.pClearValues = &clearColorReal;
+
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1231,14 +1391,16 @@ namespace VulkanProject
             //static int num = 0;
             //++num;
             //std::cout << "update: " << num << "\n";
-            presentFrameSimple();
-            //drawTriangle();
+            //presentFrameSimple();
+
 
             if (PeekMessage(&msg, currWinMainData.hWnd, 0, 0, PM_REMOVE))
             {
                 TranslateMessage(&msg);
                 DispatchMessage(&msg);
             }
+
+            drawTriangle();
         }
 
 
@@ -1278,16 +1440,16 @@ namespace Testing
 {
     void testReadFile()
     {
-        using namespace VulkanProject;
+        //using namespace VulkanProject;
 
-        //Input by hand 
-        size_t expectedByteSizeVert = 387;
-        size_t expectedByteSizeFrag = 156;
+        ////Input by hand 
+        //size_t expectedByteSizeVert = 572;
+        //size_t expectedByteSizeFrag = 572;
 
-        assert(readShaderFile("Shaders/triShader.frag").size() == expectedByteSizeFrag);
-        assert(readShaderFile("Shaders/triShader.vert").size() == expectedByteSizeVert);
+        //assert(readShaderFile("Shaders/triFrag.spv").size() == expectedByteSizeFrag);
+        //assert(readShaderFile("Shaders/triVert.spv").size() == expectedByteSizeVert);
 
-        std::cout << "\n testReadFile() completed \n" << std::endl;
+        //std::cout << "\n testReadFile() completed \n" << std::endl;
     }
 }
 
@@ -1305,26 +1467,28 @@ int main()
 
     VulkanProject::setupPrototype();
 
-    VulkanProject::createCommandPool();
-    VulkanProject::createCommandBuffer();
+    VulkanProject::setupDebugMessenger();
 
     VulkanProject::WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
-    VulkanProject::createSwapChain();
-    VulkanProject::createImageViews();
-    VulkanProject::setupFrameBuffers();
 
-
-    VulkanProject::setupRenderPass();
-    VulkanProject::setupGraphicsPipeline();
-
-    VulkanProject::createSyncObjects();
-
-    
     if (isDebugCallbackOutput)
     {
         VulkanProject::Debugging::PrintDebug();
     }
+
+
+
+    VulkanProject::createSwapChain();
+    VulkanProject::createImageViews();
+    VulkanProject::setupRenderPass();
+    VulkanProject::setupGraphicsPipeline();
+    VulkanProject::setupFrameBuffers();
+    VulkanProject::createCommandPool();
+    VulkanProject::createCommandBuffer();
+    VulkanProject::createSyncObjects();
+
+    
 
     VulkanProject::UpdateWinMain();
 
