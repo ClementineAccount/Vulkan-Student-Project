@@ -32,6 +32,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 
 
+
 #include <vulkan/vulkan.hpp>
 #include "VulkanInstance.h"
 #include <iostream>
@@ -48,6 +49,7 @@ constexpr bool isDebugCallbackOutput = false;
 
 namespace VulkanProject
 {
+    const int MAX_FRAMES_IN_FLIGHT = 2;
 
     const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -66,13 +68,20 @@ namespace VulkanProject
     constexpr int windowWidth = 800;
     constexpr int windowHeight = 600;
 
+    uint32_t currentFrame = 0;
+
     VkClearColorValue ClearColorValue = { 1.0, 0.0, 0.0, 0.0 };
     VkClearValue triangleBackground = { 0.0f, 0.0f, 1.0f, 1.0f };
 
     //---To Do: Move this stuff to a proper global container pattern of sorts---
 
     VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
+    
+    std::vector<VkCommandBuffer> commandBuffers;
+
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
 
     VkInstance gVkInstance;
     VkSurfaceKHR win32Surface;
@@ -90,11 +99,6 @@ namespace VulkanProject
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
-
-    //https://vulkan-tutorial.com/en/Drawing_a_triangle/Drawing/Rendering_and_presentation
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
 
     //---To Do: Move this stuff to a proper global container pattern of sorts---
 
@@ -1035,14 +1039,6 @@ namespace VulkanProject
         }
     }
 
-    void cleanupSwapChain() {
-        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-            vkDestroyImageView(currGraphicsCard.logicalDevice, swapChainImageViews[i], nullptr);
-        }
-
-        vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
-    }
-
     struct WinMainData
     {
         HINSTANCE hInstance;
@@ -1121,20 +1117,20 @@ namespace VulkanProject
         CommandBufferBeginInfo.pInheritanceInfo = NULL;
 
         VkResult result;
-        result = vkBeginCommandBuffer(commandBuffer, &CommandBufferBeginInfo);
+        result = vkBeginCommandBuffer(commandBuffers[0], &CommandBufferBeginInfo);
         for (size_t i = 0; i < swapChainImages.size(); ++i)
         {
-            vkCmdClearColorImage(commandBuffer, swapChainImages[i], VK_IMAGE_LAYOUT_GENERAL, &ClearColorValue, 1, &subresourceRange);
+            vkCmdClearColorImage(commandBuffers[0], swapChainImages[i], VK_IMAGE_LAYOUT_GENERAL, &ClearColorValue, 1, &subresourceRange);
            
         }
-        result = vkEndCommandBuffer(commandBuffer);
+        result = vkEndCommandBuffer(commandBuffers[0]);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = 0;
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pCommandBuffers = &commandBuffers[0];
 
         result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
         if (result != VK_SUCCESS) {
@@ -1163,14 +1159,17 @@ namespace VulkanProject
         }
     }
 
-    void createCommandBuffer() {
+    void createCommandBuffers() {
+
+        commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;
+        allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-        if (vkAllocateCommandBuffers(currGraphicsCard.logicalDevice, &allocInfo, &commandBuffer) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(currGraphicsCard.logicalDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
@@ -1178,6 +1177,12 @@ namespace VulkanProject
 
 
     void createSyncObjects() {
+
+        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -1185,11 +1190,17 @@ namespace VulkanProject
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        if (vkCreateSemaphore(currGraphicsCard.logicalDevice, &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
-            vkCreateSemaphore(currGraphicsCard.logicalDevice, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS ||
-            vkCreateFence(currGraphicsCard.logicalDevice, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create synchronization objects for a frame!");
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            if (vkCreateSemaphore(currGraphicsCard.logicalDevice, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+                vkCreateSemaphore(currGraphicsCard.logicalDevice, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(currGraphicsCard.logicalDevice, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create synchronization objects for a frame!");
+            }
+
+
         }
+
 
     }
 
@@ -1231,32 +1242,32 @@ namespace VulkanProject
 
     void drawTriangle()
     {
-        vkWaitForFences(currGraphicsCard.logicalDevice, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-        vkResetFences(currGraphicsCard.logicalDevice, 1, &inFlightFence);
+        vkWaitForFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkResetFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame]);
 
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(currGraphicsCard.logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+        vkAcquireNextImageKHR(currGraphicsCard.logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-        vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
-        recordTriangleCommandBuffer(commandBuffer, imageIndex);
+        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        recordTriangleCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
+        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame]};
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
-        VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+        VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame]};
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -1273,6 +1284,8 @@ namespace VulkanProject
         presentInfo.pImageIndices = &imageIndex;
 
         vkQueuePresentKHR(graphicsQueue, &presentInfo);
+
+        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
     }
 
@@ -1412,28 +1425,66 @@ namespace VulkanProject
         return (int)msg.wParam;
     }
 
+    void cleanupSwapChain() {
+        for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
+            vkDestroyFramebuffer(currGraphicsCard.logicalDevice, swapChainFramebuffers[i], nullptr);
+        }
+
+        vkDestroyPipeline(currGraphicsCard.logicalDevice, graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(currGraphicsCard.logicalDevice, pipelineLayout, nullptr);
+        vkDestroyRenderPass(currGraphicsCard.logicalDevice, renderPass, nullptr);
+
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            vkDestroyImageView(currGraphicsCard.logicalDevice, swapChainImageViews[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
+    }
+
 
     void cleanup()
     {
         std::cout << "cleanup()\n";
 
-        for (auto imageView : swapChainImageViews) {
-            vkDestroyImageView(currGraphicsCard.logicalDevice, imageView, nullptr);
+
+        vkDeviceWaitIdle(VulkanProject::currGraphicsCard.logicalDevice);
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroySemaphore(currGraphicsCard.logicalDevice, renderFinishedSemaphores[i], nullptr);
+            vkDestroySemaphore(currGraphicsCard.logicalDevice, imageAvailableSemaphores[i], nullptr);
+            vkDestroyFence(currGraphicsCard.logicalDevice, inFlightFences[i], nullptr);
         }
+
+        for (auto& mod : shaderModuleMap)
+            vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
+
+      
+        vkDestroyCommandPool(currGraphicsCard.logicalDevice, commandPool, nullptr);
 
         for (auto framebuffer : swapChainFramebuffers) {
             vkDestroyFramebuffer(currGraphicsCard.logicalDevice, framebuffer, nullptr);
         }
 
-        vkDestroyCommandPool(currGraphicsCard.logicalDevice, commandPool, nullptr);
-
+        vkDestroyPipeline(currGraphicsCard.logicalDevice, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(currGraphicsCard.logicalDevice, pipelineLayout, nullptr);
         vkDestroyRenderPass(currGraphicsCard.logicalDevice, renderPass, nullptr);
 
+        for (auto imageView : swapChainImageViews) {
+            vkDestroyImageView(currGraphicsCard.logicalDevice, imageView, nullptr);
+        }
+
+        vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
         vkDestroyDevice(currGraphicsCard.logicalDevice, nullptr);
+
+        DestroyDebugUtilsMessengerEXT(gVkInstance, debugMessenger, nullptr);
+        DestroyDebugUtilsMessengerEXT(gVkInstance, Debugging::debugMessenger, nullptr);
+
+        vkDestroySurfaceKHR(gVkInstance, win32Surface, nullptr);
         vkDestroyInstance(gVkInstance, nullptr);
 
     }
+
+
 }
 
 
@@ -1487,13 +1538,15 @@ int main()
     VulkanProject::setupGraphicsPipeline();
     VulkanProject::setupFrameBuffers();
     VulkanProject::createCommandPool();
-    VulkanProject::createCommandBuffer();
+    VulkanProject::createCommandBuffers();
     VulkanProject::createSyncObjects();
 
     
 
     VulkanProject::UpdateWinMain();
 
+
+;
     VulkanProject::cleanup();
 }
 
