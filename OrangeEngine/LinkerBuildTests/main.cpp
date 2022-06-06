@@ -117,7 +117,7 @@ namespace VulkanProject
 
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
-            attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+            attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
             attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
             attributeDescriptions[1].binding = 0;
@@ -137,48 +137,50 @@ namespace VulkanProject
 
     const std::vector<Vertex> vertices = {
 
+        //Front Face
+        {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, 
+        {{  0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, 
+        {{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, 
+        {{-0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
 
-        //x-front
-        //{{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //bottom left
-        //{{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}, //bottom right
-        //{{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}, //top right
-        //{{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //top left
+        // Back face
+        {{ -0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  -0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
 
+        // Top face
+        {{  -0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{  -0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{  0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
 
-        ////z-front
-        {{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //top left
-        {{ 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //  //top right
-        {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //bottom right
-        {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // bottom left
+        // Bottom Face
+        {{ -0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{ -0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
 
-  
-  
+        //Right Face
+        {{  0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{   0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
 
-        //y-top
-        //{{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //top left
-        //{{ 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //  //top right
-        //{{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //bottom right
-        //{{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // bottom left
-
-
-
-
-
-        ////x-front
-        //{{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-        //{{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        //{{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        //{{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-
-        ////z-back
-        //{{-1.0f, -1.0f,-1.0f}, {1.0f, 0.0f, 0.0f}}, 
-        //{{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        //{{ 1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        //{{-1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}
+        // Left face
+        {{   -0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{   -0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  -0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{  -0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
     };
 
     const std::vector<uint16_t> indices = {
-        0, 1, 2, 2, 3, 0
+        0, 1, 2, 0, 2, 3, //front
+        4, 5, 6, 4, 6, 7, //back
+        8, 9, 10, 8, 10, 11, //top
+        12, 13, 14, 12, 14, 15, //bottom
+        16, 17, 18, 16, 18, 19, //right
+        20, 21, 22, 20, 22, 23 //left
     };
 
     struct MeshPushConstants {
@@ -1129,7 +1131,7 @@ namespace VulkanProject
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -1591,13 +1593,15 @@ namespace VulkanProject
         glm::mat4 projection;
 
         model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        //model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 
+        camPos.x += time * 0.01f;
         camPos.y += time * 0.01f;
+        camPos.z += time * 0.01f;
 
         view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+        projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
         projection[1][1] *= -1;
 
         //calculate final mesh matrix
@@ -1609,6 +1613,8 @@ namespace VulkanProject
         //upload the matrix to the GPU via push constants
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
+
+        //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
