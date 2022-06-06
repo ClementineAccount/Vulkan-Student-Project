@@ -100,7 +100,7 @@ namespace VulkanProject
 
 
     struct Vertex {
-        glm::vec2 pos;
+        glm::vec3 pos;
         glm::vec3 color;
 
         static VkVertexInputBindingDescription getBindingDescription() {
@@ -136,10 +136,45 @@ namespace VulkanProject
     };
 
     const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}}
+
+
+        //x-front
+        //{{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //bottom left
+        //{{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}, //bottom right
+        //{{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}, //top right
+        //{{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //top left
+
+
+        ////z-front
+        {{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //top left
+        {{ 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //  //top right
+        {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //bottom right
+        {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // bottom left
+
+  
+  
+
+        //y-top
+        //{{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //top left
+        //{{ 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, //  //top right
+        //{{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // //bottom right
+        //{{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}, // bottom left
+
+
+
+
+
+        ////x-front
+        //{{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+        //{{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+        //{{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+        //{{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+
+        ////z-back
+        //{{-1.0f, -1.0f,-1.0f}, {1.0f, 0.0f, 0.0f}}, 
+        //{{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+        //{{ 1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+        //{{-1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}
     };
 
     const std::vector<uint16_t> indices = {
@@ -659,9 +694,6 @@ namespace VulkanProject
 
     }
 
-
-
-
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -1097,7 +1129,7 @@ namespace VulkanProject
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode = VK_CULL_MODE_NONE;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -1552,15 +1584,19 @@ namespace VulkanProject
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        glm::vec3 camPos = { 0.f,0.f,0.f };
-        glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
+        static glm::vec3 camPos = { 3.f, 3.f, 3.f };
+        glm::mat4 view = glm::mat4(1.f);
 
         glm::mat4 model;
         glm::mat4 projection;
 
         model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        //model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+        camPos.y += time * 0.01f;
+
+        view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
         projection[1][1] *= -1;
 
