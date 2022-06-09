@@ -27,7 +27,7 @@ namespace VulkanProject
 		Indices meshIndices;
 
 		
-		void loadOBJ(std::string const& filePath);
+		void loadModel(std::string const& filePath);
 	};
 
 

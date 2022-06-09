@@ -9,7 +9,7 @@
 
 namespace VulkanProject
 {
-	void Mesh::loadOBJ(std::string const& filePath)
+	void Mesh::loadModel(std::string const& filePath)
 	{
 		//ctrlc ctrlv: https://learnopengl.com/Model-Loading/Model
 		Assimp::Importer importer;
@@ -39,6 +39,8 @@ namespace VulkanProject
 			}
 
 		}
+
+		//std::reverse(meshIndices.indexVector.begin(), meshIndices.indexVector.end());
 
 	}
 }

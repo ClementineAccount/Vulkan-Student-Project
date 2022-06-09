@@ -166,8 +166,8 @@ namespace VulkanProject
     };
 
 
-    std::vector<Vertex> vertex_load_cube;
-    Mesh meshCube;
+    std::vector<Vertex> vertex_load_model;
+    Mesh meshLoad;
     
 
 
@@ -1600,7 +1600,7 @@ namespace VulkanProject
 
         model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
         //camPos.x += time * 0.01f;
         //camPos.y += time * 0.01f;
@@ -1621,7 +1621,7 @@ namespace VulkanProject
 
 
         //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(meshLoad.meshIndices.indexVector.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
 
@@ -1714,11 +1714,22 @@ namespace VulkanProject
 
     void loadObjects()
     {
-        std::string cubeFilePath = "Models/cube.obj";
+        std::string sphereMod = "Models/sphere_modified.obj";
+        std::string sphere = "Models/sphere.obj";
+        std::string quad = "Models/quad.obj";
+        std::string cup = "Models/cup.obj";
+        std::string starwars1 = "Models/starwars1.obj";
+        std::string cubeFilePath = "Models/cube2.obj";
+        std::string skullFilePath = "Models/demon-skull/skull.fbx";
+        std::string carFilePath = "Models/vintage-car/car.fbx";
+        
+        std::string fourSphere = "Models/4Sphere.obj";
+        std::string cuteAngel = "Models/lucy_princeton.obj";
 
-        meshCube.loadOBJ(cubeFilePath);
+        meshLoad.loadModel(skullFilePath);
 
-        vertex_load_cube = VerticesToBuffer(meshCube.meshVertices);
+        vertex_load_model = VerticesToBuffer(meshLoad.meshVertices);
+
     }
 
     bool isQuitting = false;
@@ -1952,14 +1963,14 @@ int main()
     }
 
     VulkanProject::setupPrototype();
-    VulkanProject::setupDebugMessenger();
+    //VulkanProject::setupDebugMessenger();
     VulkanProject::WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
 
-    if (isDebugCallbackOutput)
-    {
-        VulkanProject::Debugging::PrintDebug();
-    }
+    //if (isDebugCallbackOutput)
+    //{
+    //    VulkanProject::Debugging::PrintDebug();
+    //}
 
     VulkanProject::createSwapChain();
     VulkanProject::createImageViews();
@@ -1979,8 +1990,8 @@ int main()
     VulkanProject::createVertexBuffer(VulkanProject::vertices);
     VulkanProject::createIndexBuffer(VulkanProject::indices);
 #else
-    VulkanProject::createVertexBuffer(VulkanProject::vertex_load_cube);
-    VulkanProject::createIndexBuffer(VulkanProject::meshCube.meshIndices.indexVector);
+    VulkanProject::createVertexBuffer(VulkanProject::vertex_load_model);
+    VulkanProject::createIndexBuffer(VulkanProject::meshLoad.meshIndices.indexVector);
 
 #endif //  DEFAULT_CUBE
 
