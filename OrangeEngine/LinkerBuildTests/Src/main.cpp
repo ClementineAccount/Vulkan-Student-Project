@@ -30,20 +30,24 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-
-
 #include <unordered_map>
+
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan.hpp>
+
+
+#include <iostream>
+
+#include "Mesh.h"
+#include "vulkanGlobals.h"
 
 //Vulkan
 
 //win32 api
 
-#define VK_USE_PLATFORM_WIN32_KHR
 
 
 
-#include <vulkan/vulkan.hpp>
-#include <iostream>
 
 
 constexpr bool isTesting = true;
@@ -55,12 +59,15 @@ constexpr bool isDebugCallbackOutput = false;
 
 namespace VulkanProject
 {
+    VkSurfaceKHR win32Surface;
+
+
+
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
     const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
-
 
     // The main window class name.
     static TCHAR szWindowClass[] = _T("DesktopApp");
@@ -80,26 +87,6 @@ namespace VulkanProject
     VkClearValue triangleBackground = { 0.0f, 0.0f, 1.0f, 1.0f };
 
     //---To Do: Move this stuff to a proper global container pattern of sorts---
-
-    VkCommandPool commandPool;
-    
-    std::vector<VkCommandBuffer> commandBuffers;
-
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-
-    VkInstance gVkInstance;
-    VkSurfaceKHR win32Surface;
-    VkQueue presentationQueue;
-    VkQueue graphicsQueue;
-
-    VkSwapchainKHR swapChain;
-    VkPresentModeKHR presentMode;
-    VkSurfaceFormatKHR surfaceFormat;
-    VkExtent2D swapChainExtent;
-
-    VkPipelineLayout _meshPipelineLayout;
 
 
     struct Vertex {
@@ -178,7 +165,38 @@ namespace VulkanProject
         {{  -0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
     };
 
-    const std::vector<uint16_t> indices = {
+
+    std::vector<Vertex> vertex_load_cube;
+    Mesh meshCube;
+    
+
+
+   //SOA to AOS conversion  helper function
+    std::vector<Vertex> VerticesToBuffer(Vertices const& vertices)
+    {
+        static const glm::vec3 defaultColor = { 1.0f, 0.0f, 0.0f };
+        
+        std::vector<Vertex> vertexList;
+        for (size_t i = 0; i < vertices.positions.size(); ++i)
+        {
+            Vertex vertexToInsert;
+            vertexToInsert.pos = vertices.positions[i];
+            vertexList.push_back(vertexToInsert);
+
+            if (i < vertices.colors.size())
+            {
+                vertexList[i].color = vertices.colors[i];
+            }
+            else
+            {
+                vertexList[i].color = defaultColor;
+            }
+        }
+
+        return vertexList;
+    }
+
+    const std::vector<Indices::indicesType> indices = {
         0, 1, 2, 0, 2, 3, //front
         4, 5, 6, 4, 6, 7, //back
         8, 9, 10, 8, 10, 11, //top
@@ -192,13 +210,11 @@ namespace VulkanProject
         glm::mat4 render_matrix;
     };
 
-
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
 
     VkBuffer vertexBuffer2;
     VkDeviceMemory vertexBufferMemory2;
-
 
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
@@ -441,7 +457,6 @@ namespace VulkanProject
     }
 
 
-
     //std::vector<const char*> getRequiredExtensions() {
     //    uint32_t glfwExtensionCount = 0;
     //    const char** glfwExtensions;
@@ -512,7 +527,6 @@ namespace VulkanProject
         VkShaderModule shaderModule = createShaderModule(readShaderFile(shaderFilePath), shaderName);
         shaderModuleMap.insert({ shaderName, shaderModule });
     }
-
 
     //void createCommandPool()
     //{
@@ -659,10 +673,10 @@ namespace VulkanProject
         vkFreeCommandBuffers(currGraphicsCard.logicalDevice, commandPool, 1, &commandBuffer);
     }
 
-    void createVertexBuffer() {
+    void createVertexBuffer(std::vector<Vertex> const& vertexList) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+        bufferInfo.size = sizeof(vertexList[0]) * vertexList.size();
         bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -687,13 +701,13 @@ namespace VulkanProject
 
         void* data;
         vkMapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+        memcpy(data, vertexList.data(), (size_t)bufferInfo.size);
         vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
 
     }
 
-    void createIndexBuffer() {
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+    void createIndexBuffer(std::vector<Indices::indicesType> const& indexList) {
+        VkDeviceSize bufferSize = sizeof(indexList[0]) * indexList.size();
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -701,7 +715,7 @@ namespace VulkanProject
 
         void* data;
         vkMapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
+        memcpy(data, indexList.data(), (size_t)bufferSize);
         vkUnmapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory);
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
@@ -741,7 +755,6 @@ namespace VulkanProject
             createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
         }
     }
-
 
     void createDescriptorPool() {
         VkDescriptorPoolSize poolSize{};
@@ -1392,6 +1405,8 @@ namespace VulkanProject
     //Pass in the win32 api window
     int setupSurface(HWND hwnd, HINSTANCE hInstance)
     {
+
+
         VkWin32SurfaceCreateInfoKHR createSurfaceInfo{};
         createSurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
         createSurfaceInfo.hwnd = hwnd;
@@ -1414,9 +1429,6 @@ namespace VulkanProject
 
         std::cout << "presentation queue created\n";
     }
-
-
-
 
 
     //Finally some code I am not lifting from the tutorial. Test if I can draw straight to the surface without a renderpass
@@ -1567,9 +1579,6 @@ namespace VulkanProject
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 
-   
-
-
         VkBuffer vertexBuffers[] = { vertexBuffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
@@ -1650,7 +1659,6 @@ namespace VulkanProject
         setupFrameBuffers();
     }
 
-
     void drawTriangle(glm::vec3 translate = glm::vec3(0.f, 0.0f, 0.0f))
     {
         vkWaitForFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -1702,6 +1710,15 @@ namespace VulkanProject
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
+    }
+
+    void loadObjects()
+    {
+        std::string cubeFilePath = "Models/cube.obj";
+
+        meshCube.loadOBJ(cubeFilePath);
+
+        vertex_load_cube = VerticesToBuffer(meshCube.meshVertices);
     }
 
     bool isQuitting = false;
@@ -1842,6 +1859,9 @@ namespace VulkanProject
     }
 
 
+
+
+
     void cleanup()
     {
         std::cout << "cleanup()\n";
@@ -1898,8 +1918,6 @@ namespace VulkanProject
         vkDestroyInstance(gVkInstance, nullptr);
 
     }
-
-
 }
 
 
@@ -1934,9 +1952,7 @@ int main()
     }
 
     VulkanProject::setupPrototype();
-
     VulkanProject::setupDebugMessenger();
-
     VulkanProject::WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
 
@@ -1944,8 +1960,6 @@ int main()
     {
         VulkanProject::Debugging::PrintDebug();
     }
-
-
 
     VulkanProject::createSwapChain();
     VulkanProject::createImageViews();
@@ -1958,8 +1972,20 @@ int main()
 
     VulkanProject::createCommandPool();
 
-    VulkanProject::createVertexBuffer();
-    VulkanProject::createIndexBuffer();
+    //Loading meshes using assimp
+    VulkanProject::loadObjects();
+
+#ifdef  DEFAULT_CUBE
+    VulkanProject::createVertexBuffer(VulkanProject::vertices);
+    VulkanProject::createIndexBuffer(VulkanProject::indices);
+#else
+    VulkanProject::createVertexBuffer(VulkanProject::vertex_load_cube);
+    VulkanProject::createIndexBuffer(VulkanProject::meshCube.meshIndices.indexVector);
+
+#endif //  DEFAULT_CUBE
+
+
+
 
     VulkanProject::createUniformBuffers();
     VulkanProject::createDescriptorPool();
@@ -1969,6 +1995,12 @@ int main()
     VulkanProject::createSyncObjects();
 
     
+
+
+
+
+    //To Do: Loading textures using assimp
+
 
     VulkanProject::UpdateWinMain();
 
