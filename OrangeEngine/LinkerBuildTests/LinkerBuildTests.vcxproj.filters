@@ -9,66 +9,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="DearImgui">
-      <UniqueIdentifier>{7155bb47-4314-445f-bc45-1230de082cf3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\main">
       <UniqueIdentifier>{ad9bc643-c427-46e6-bd8a-57cc73da0fc9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\VulkanProject">
-      <UniqueIdentifier>{b8962af4-813a-417e-933d-c2caa7c79a96}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DearImgui\DearImgui">
-      <UniqueIdentifier>{c854bfb2-226d-4d89-84c7-e07b9a55818d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\tests">
-      <UniqueIdentifier>{a3ecbc4d-b628-485f-a058-023e31649968}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="imconfig.h">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui.h">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_impl_win32.h">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_internal.h">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imstb_rectpack.h">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imstb_textedit.h">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imstb_truetype.h">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="imgui.cpp">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_demo.cpp">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_draw.cpp">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_impl_win32.cpp">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_tables.cpp">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_widgets.cpp">
-      <Filter>DearImgui\DearImgui</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="Src\main.cpp">
       <Filter>Source Files\main</Filter>
     </ClCompile>
   </ItemGroup>
