@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Dependencies\tinyddsloader.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Src\Mesh.h" />
     <ClInclude Include="Src\vulkanGlobals.h" />

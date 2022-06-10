@@ -33,6 +33,7 @@
 #include <unordered_map>
 
 #define VK_USE_PLATFORM_WIN32_KHR
+
 #include <vulkan/vulkan.hpp>
 
 
@@ -411,7 +412,7 @@ namespace VulkanProject
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
 #else
-    const bool enableValidationLayers = false;
+    const bool enableValidationLayers = true;
 #endif
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
@@ -817,11 +818,11 @@ namespace VulkanProject
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Linker Test";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "Orange Engine";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
+        appInfo.pApplicationName = "Vulkan Student Project";
+        appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 1, 0);
+        appInfo.pEngineName = "Vulkan Student Project";
+        appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 1, 0);
+        appInfo.apiVersion = VK_API_VERSION_1_3;
 
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -838,11 +839,11 @@ namespace VulkanProject
 
         extensionNames.push_back("VK_KHR_surface");
         extensionNames.push_back("VK_KHR_win32_surface");
-        extensionNames.push_back("VK_KHR_surface_protected_capabilities");
+        //extensionNames.push_back("VK_KHR_surface_protected_capabilities");
 
 
-        for (auto const& extension : extensionVector)
-            extensionNames.push_back(extension.extensionName);
+        //for (auto const& extension : extensionVector)
+        //    extensionNames.push_back(extension.extensionName);
 
 
         createInfo.enabledExtensionCount = extensionNames.size();
@@ -962,16 +963,8 @@ namespace VulkanProject
         queueCreateGraphics.queueCount = 1;
         queueCreateGraphics.pQueuePriorities = &graphicsQueuePriority;
 
-        float presentQueuePriority = 1.0f;
-        VkDeviceQueueCreateInfo queueCreatePresentation{};
-        queueCreatePresentation.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreatePresentation.queueFamilyIndex = indices.presentationFamilyIndex;
-        queueCreatePresentation.queueCount = 1;
-        queueCreatePresentation.pQueuePriorities = &presentQueuePriority;
-
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfoVector;
         queueCreateInfoVector.push_back(queueCreateGraphics);
-        queueCreateInfoVector.push_back(queueCreatePresentation);
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -999,11 +992,19 @@ namespace VulkanProject
         std::vector<const char*> extensionNames;
         extensionNames.push_back("VK_KHR_swapchain");
 
+        //std::string removeExtension = "VK_EXT_buffer_device_address";
+        //
+
         //for (auto const& p : extensionGraphicsVector)
         //{
         //    extensionNames.push_back(p.extensionName);
         //}
+        //extensionNames.erase(std::remove(extensionNames.begin(), extensionNames.end(), removeExtension), extensionNames.end());
 
+       //removeExtension = "VK_KHR_get_surface_capabilities2";
+       //removeExtension = "VK_KHR_surface_protected_capabilities";
+
+       //extensionNames.erase(std::remove(extensionNames.begin(), extensionNames.end(), removeExtension), extensionNames.end());
 
 
         createInfo.enabledExtensionCount = extensionNames.size();
@@ -1017,7 +1018,6 @@ namespace VulkanProject
         }
 
         vkGetDeviceQueue(currGraphicsCard.logicalDevice, indices.graphicsFamilyIndex, 0, &graphicsQueue);
-        vkGetDeviceQueue(currGraphicsCard.logicalDevice, indices.presentationFamilyIndex, 0, &presentationQueue);
     }
 
 

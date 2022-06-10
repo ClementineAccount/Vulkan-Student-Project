@@ -21,6 +21,9 @@
     <ClInclude Include="Src\Mesh.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Dependencies\tinyddsloader.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\main.cpp">
