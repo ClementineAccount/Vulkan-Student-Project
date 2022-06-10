@@ -47,7 +47,7 @@
 
 
 
-
+#define DEFAULT_CUBE
 
 
 constexpr bool isTesting = true;
@@ -337,6 +337,7 @@ namespace VulkanProject
             VkDebugUtilsMessengerCreateInfoEXT createInfo;
             populateDebugMessengerCreateInfo(createInfo);
 
+
             if (CreateDebugUtilsMessengerEXT(currInstance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
                 throw std::runtime_error("failed to set up debug messenger!");
             }
@@ -410,7 +411,7 @@ namespace VulkanProject
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
 #else
-    const bool enableValidationLayers = true;
+    const bool enableValidationLayers = false;
 #endif
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
@@ -832,13 +833,22 @@ namespace VulkanProject
         std::vector<VkExtensionProperties> extensionVector(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionVector.data());
 
-        createInfo.enabledExtensionCount = extensionCount;
+
         std::vector<const char*> extensionNames(gExtensionCount);
+
+        extensionNames.push_back("VK_KHR_surface");
+        extensionNames.push_back("VK_KHR_win32_surface");
+        extensionNames.push_back("VK_KHR_surface_protected_capabilities");
+
+
         for (auto const& extension : extensionVector)
             extensionNames.push_back(extension.extensionName);
 
 
+        createInfo.enabledExtensionCount = extensionNames.size();
         createInfo.ppEnabledExtensionNames = extensionNames.data();
+
+
 
 
         //auto extensions = getRequiredExtensions();
@@ -987,10 +997,12 @@ namespace VulkanProject
         //createInfo.enabledExtensionCount = extensionCountGraphics;
 
         std::vector<const char*> extensionNames;
-        for (auto const& p : extensionGraphicsVector)
-        {
-            extensionNames.push_back(p.extensionName);
-        }
+        extensionNames.push_back("VK_KHR_swapchain");
+
+        //for (auto const& p : extensionGraphicsVector)
+        //{
+        //    extensionNames.push_back(p.extensionName);
+        //}
 
 
 
@@ -1017,7 +1029,7 @@ namespace VulkanProject
         //Attempt to create an instance
 
         createVulkanInstances(gVkInstance);
-        Debugging::setupDebugMessenger(gVkInstance);
+        //Debugging::setupDebugMessenger(gVkInstance);
 
         getGraphicsCard(gVkInstance, currGraphicsCard);
 
@@ -1621,7 +1633,12 @@ namespace VulkanProject
 
 
         //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+#ifdef DEFAULT_CUBE
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+#else
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(meshLoad.meshIndices.indexVector.size()), 1, 0, 0, 0);
+#endif
+
 
         vkCmdEndRenderPass(commandBuffer);
 
