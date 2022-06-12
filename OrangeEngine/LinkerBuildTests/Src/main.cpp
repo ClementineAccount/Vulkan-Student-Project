@@ -101,7 +101,7 @@ namespace VulkanProject
     struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
-        //glm::vec2 textureUV; 
+        glm::vec2 texCoord;
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
@@ -112,12 +112,12 @@ namespace VulkanProject
             return bindingDescription;
         }
 
-        static const VkFormat textureFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+        static const VkFormat textureFormat = VK_FORMAT_R32G32_SFLOAT;
         static const VkFormat vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
         static const VkFormat colorFormat = VK_FORMAT_R32G32B32_SFLOAT;
 
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
@@ -126,8 +126,13 @@ namespace VulkanProject
 
             attributeDescriptions[1].binding = 0;
             attributeDescriptions[1].location = 1;
-            attributeDescriptions[1].format = textureFormat;
+            attributeDescriptions[1].format = colorFormat;
             attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+            attributeDescriptions[2].binding = 0;
+            attributeDescriptions[2].location = 2;
+            attributeDescriptions[2].format = textureFormat;
+            attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
             return attributeDescriptions;
         }
@@ -530,6 +535,8 @@ namespace VulkanProject
     std::vector<Vertex> VerticesToBuffer(Vertices const& vertices)
     {
         static const glm::vec3 defaultColor = { 1.0f, 0.0f, 0.0f };
+
+        static const glm::vec2 defaultTexCord = { 0.0f, 0.0f };
         
         std::vector<Vertex> vertexList;
         for (size_t i = 0; i < vertices.positions.size(); ++i)
@@ -546,6 +553,17 @@ namespace VulkanProject
             {
                 vertexList[i].color = defaultColor;
             }
+
+            if (i < vertices.textureCords.size())
+            {
+                vertexList[i].texCoord = vertices.textureCords[i];
+            }
+            else
+            {
+                vertexList[i].texCoord = defaultTexCord;
+            }
+
+
         }
 
         return vertexList;
@@ -939,10 +957,18 @@ namespace VulkanProject
         uboLayoutBinding.pImmutableSamplers = nullptr;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+        samplerLayoutBinding.binding = 1;
+        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding.pImmutableSamplers = nullptr;
+        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &uboLayoutBinding;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
 
         if (vkCreateDescriptorSetLayout(currGraphicsCard.logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor set layout!");
@@ -1002,8 +1028,6 @@ namespace VulkanProject
         vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
     }
-
-
 
 
     void createVertexBufferFromVertices(Vertices verticesList, VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory)
@@ -1102,14 +1126,16 @@ namespace VulkanProject
     }
 
     void createDescriptorPool() {
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
         if (vkCreateDescriptorPool(currGraphicsCard.logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
@@ -1125,7 +1151,7 @@ namespace VulkanProject
         allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         allocInfo.pSetLayouts = layouts.data();
 
-        descriptorSets.resize(MAX_FRAMES_IN_FLIGHT) ;
+        descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
         if (vkAllocateDescriptorSets(currGraphicsCard.logicalDevice, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
@@ -1136,16 +1162,30 @@ namespace VulkanProject
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkWriteDescriptorSet descriptorWrite{};
-            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrite.dstSet = descriptorSets[i];
-            descriptorWrite.dstBinding = 0;
-            descriptorWrite.dstArrayElement = 0;
-            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrite.descriptorCount = 1;
-            descriptorWrite.pBufferInfo = &bufferInfo;
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = textureVector[0].textureImageView;
+            imageInfo.sampler = textureVector[0].textureSampler;
 
-            vkUpdateDescriptorSets(currGraphicsCard.logicalDevice, 1, &descriptorWrite, 0, nullptr);
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = descriptorSets[i];
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = descriptorSets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &imageInfo;
+
+            vkUpdateDescriptorSets(currGraphicsCard.logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
     }
 
@@ -2096,13 +2136,18 @@ namespace VulkanProject
         }
 
 
+        //void* data;
+        //vkMapMemory(currGraphicsCard.logicalDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+        //memcpy(data, &ubo, sizeof(ubo));
+        //vkUnmapMemory(currGraphicsCard.logicalDevice, uniformBuffersMemory[currentImage]);
+
 
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        static glm::vec3 camPos = { 10.f, 10.f, 10.f };
+        static glm::vec3 camPos = { 3.f, 3.f, 3.f };
         glm::mat4 view = glm::mat4(1.f);
 
         glm::mat4 modelMat;
@@ -2206,10 +2251,12 @@ namespace VulkanProject
         std::string skullFilePath = "Models/demon-skull/skull.fbx";
         std::string carFilePath = "Models/vintage-car/car.fbx";
         
+
+        std::string textureCube = "Models/cubeTexture.obj";
         std::string fourSphere = "Models/4Sphere.obj";
         std::string cuteAngel = "Models/lucy_princeton.obj";
 
-        currModel.loadModel(carFilePath);
+        currModel.loadModel(textureCube);
 
         //meshLoad.loadModel(skullFilePath);
 
@@ -2358,7 +2405,7 @@ namespace VulkanProject
     void createTextures()
     {
         std::string textureFolderPath = "Textures/gen/";
-        std::string boxDiffuseName = "DiffuseMap.dds";
+        std::string boxDiffuseName = "SpecularMap.dds";
 
         Texture textureDiffuse;
         textureDiffuse.makeTexture(textureFolderPath + boxDiffuseName);
