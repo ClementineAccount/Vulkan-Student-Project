@@ -357,6 +357,26 @@ namespace VulkanProject
         vkBindImageMemory(currGraphicsCard.logicalDevice, image, imageMemory, 0);
     }
 
+    VkImageView createImageView(VkImage image, VkFormat format) {
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = format;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+
+        VkImageView imageView;
+        if (vkCreateImageView(currGraphicsCard.logicalDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture image view!");
+        }
+
+        return imageView;
+    }
+
 
 
     class Texture
@@ -365,6 +385,8 @@ namespace VulkanProject
 
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
+
+        VkImageView textureImageView;
 
         tinyddsloader::DDSFile ddsImage;
         void makeTexture(std::string const& filePath);
@@ -386,9 +408,19 @@ namespace VulkanProject
 
         int height = ddsImage.GetHeight();
         int width = ddsImage.GetWidth();
-        int bytesPerPixel = ddsImage.GetBitsPerPixel(ddsImage.GetFormat()) / CHAR_BIT;
+
+        tinyddsloader::DDSFile::DXGIFormat imageFormat = ddsImage.GetFormat();
+        unsigned int bytesPerPixel = ddsImage.GetBitsPerPixel(imageFormat) / CHAR_BIT;
 
         VkDeviceSize imageSize = bytesPerPixel * height * width;
+
+        //To Do: case switch for all possible formats?
+        VkFormat textureFormat;
+        if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::BC3_UNorm)
+        {
+            textureFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+        }
+
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -399,14 +431,16 @@ namespace VulkanProject
         memcpy(data, ddsImage.GetImageData()->m_mem, static_cast<size_t>(imageSize));
         vkUnmapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory);
 
-        createImage(height, width, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        createImage(height, width, textureFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        transitionImageLayout(textureImage, textureFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        transitionImageLayout(textureImage, textureFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
+
+        textureImageView = createImageView(textureImage, VK_FORMAT_BC3_UNORM_BLOCK);
     };
 
 
@@ -2300,6 +2334,7 @@ namespace VulkanProject
 
         Texture textureDiffuse;
         textureDiffuse.makeTexture(textureFolderPath + boxDiffuseName);
+        textureVector.push_back(textureDiffuse);
     }
 
 
@@ -2324,6 +2359,15 @@ namespace VulkanProject
 
         vkDestroyDescriptorSetLayout(currGraphicsCard.logicalDevice, descriptorSetLayout, nullptr);
 
+
+        for (auto& currTexture : textureVector)
+        {
+            vkDestroyImageView(currGraphicsCard.logicalDevice, currTexture.textureImageView, nullptr);
+
+            vkDestroyImage(currGraphicsCard.logicalDevice, currTexture.textureImage, nullptr);
+            vkFreeMemory(currGraphicsCard.logicalDevice, currTexture.textureImageMemory, nullptr);
+
+        }
 
         for (auto& mesh : currModel.meshVector)
         {
