@@ -60,7 +60,5 @@ namespace VulkanProject
 
     VkPipelineLayout _meshPipelineLayout;
 
-    std::vector<Texture> textureVector;
 
-    Model currModel;
 }
