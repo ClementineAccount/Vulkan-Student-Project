@@ -729,6 +729,8 @@ namespace VulkanProject
     }
 
 
+
+
     void createVertexBufferFromVertices(Vertices verticesList, VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory)
     {
         std::vector<Vertex> vertexList = VerticesToBuffer(verticesList);
@@ -763,6 +765,36 @@ namespace VulkanProject
         vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
     }
 
+    void createIndexBufferFromList(std::vector<Indices::indicesType> const& indexList, VkBuffer& myIndexBuffer, VkDeviceMemory& myIndexBufferMemory)
+    {
+        VkDeviceSize bufferSize = sizeof(indexList[0]) * indexList.size();
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indexList.data(), (size_t)bufferSize);
+        vkUnmapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, myIndexBuffer, myIndexBufferMemory);
+
+        copyBuffer(stagingBuffer, myIndexBuffer, bufferSize);
+
+        vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
+        vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
+    }
+
+
+    void createBuffersFromModel(Model& currModel)
+    {
+        for (Mesh& mesh : currModel.meshVector)
+        {
+            createVertexBufferFromVertices(mesh.meshVertices, mesh.vertexBuffer, mesh.vertexBufferMemory);
+            createIndexBufferFromList(mesh.meshIndices.indexVector, mesh.indexBuffer, mesh.indexBufferMemory);
+        }
+    }
 
     void updateUniformBuffer(uint32_t currentImage, glm::vec3 translate = glm::vec3(0.0f, 0.0f, 0.0f)) {
         static auto startTime = std::chrono::high_resolution_clock::now();
@@ -1784,17 +1816,22 @@ namespace VulkanProject
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &currModel.meshVector[0].vertexBuffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        for (Mesh& mesh : currModel.meshVector)
+        {
+            VkDeviceSize offsets[] = { 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh.vertexBuffer, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        }
+
+
 
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        static glm::vec3 camPos = { 3.f, 3.f, 3.f };
+        static glm::vec3 camPos = { 10.f, 10.f, 10.f };
         glm::mat4 view = glm::mat4(1.f);
 
         glm::mat4 modelMat;
@@ -1802,7 +1839,7 @@ namespace VulkanProject
 
         modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
         modelMat = glm::rotate(modelMat, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        modelMat = glm::scale(modelMat, glm::vec3(1.0f, 1.0f, 1.0f));
+        modelMat = glm::scale(modelMat, glm::vec3(0.4f, 0.4f, 0.4f));
 
 
         view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -1824,7 +1861,8 @@ namespace VulkanProject
 #else
         //Loop through every mesh and draw the index accordingly
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(currModel.meshVector[0].meshIndices.indexVector.size()), 1, 0, 0, 0);
+        for (Mesh& mesh : currModel.meshVector)
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.meshIndices.indexVector.size()), 1, 0, 0, 0);
 #endif
 
 
@@ -1900,7 +1938,7 @@ namespace VulkanProject
         std::string fourSphere = "Models/4Sphere.obj";
         std::string cuteAngel = "Models/lucy_princeton.obj";
 
-        currModel.loadModel(sphere);
+        currModel.loadModel(carFilePath);
 
         //meshLoad.loadModel(skullFilePath);
 
@@ -2077,6 +2115,18 @@ namespace VulkanProject
 
         vkDestroyDescriptorSetLayout(currGraphicsCard.logicalDevice, descriptorSetLayout, nullptr);
 
+
+        for (auto& mesh : currModel.meshVector)
+        {
+
+            vkDestroyBuffer(currGraphicsCard.logicalDevice, mesh.indexBuffer, nullptr);
+            vkFreeMemory(currGraphicsCard.logicalDevice, mesh.indexBufferMemory, nullptr);
+
+            vkDestroyBuffer(currGraphicsCard.logicalDevice, mesh.vertexBuffer, nullptr);
+            vkFreeMemory(currGraphicsCard.logicalDevice, mesh.vertexBufferMemory, nullptr);
+
+        }
+
         vkDestroyBuffer(currGraphicsCard.logicalDevice, indexBuffer, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, indexBufferMemory, nullptr);
 
@@ -2176,9 +2226,11 @@ int main()
     VulkanProject::createVertexBuffer(VulkanProject::vertices);
     VulkanProject::createIndexBuffer(VulkanProject::indices);
 #else
-    VulkanProject::createVertexBufferFromVertices(VulkanProject::currModel.meshVector[0].meshVertices, 
-        VulkanProject::currModel.meshVector[0].vertexBuffer, VulkanProject::currModel.meshVector[0].vertexBufferMemory);
-    VulkanProject::createIndexBuffer(VulkanProject::currModel.meshVector[0].meshIndices.indexVector);
+    //VulkanProject::createVertexBufferFromVertices(VulkanProject::currModel.meshVector[0].meshVertices, 
+    //    VulkanProject::currModel.meshVector[0].vertexBuffer, VulkanProject::currModel.meshVector[0].vertexBufferMemory);
+    //VulkanProject::createIndexBuffer(VulkanProject::currModel.meshVector[0].meshIndices.indexVector);
+
+    VulkanProject::createBuffersFromModel(VulkanProject::currModel);
 
 #endif //  DEFAULT_CUBE
 

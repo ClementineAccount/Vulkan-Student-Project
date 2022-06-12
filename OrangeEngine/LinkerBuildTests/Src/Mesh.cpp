@@ -24,10 +24,10 @@ namespace VulkanProject
 			mesh.meshVertices.positions.emplace_back(addMesh.mVertices[i].x, addMesh.mVertices[i].y, addMesh.mVertices[i].z);
 
 			//Add if there are normals
-			if (addMesh.HasNormals())
-			{
-				mesh.meshVertices.normals.emplace_back(glm::vec3(addMesh.mNormals[i].x, addMesh.mNormals[i].y, addMesh.mNormals[i].z));
-			}
+			//if (addMesh.HasNormals())
+			//{
+			//	mesh.meshVertices.normals.emplace_back(glm::vec3(addMesh.mNormals[i].x, addMesh.mNormals[i].y, addMesh.mNormals[i].z));
+			//}
 
 			if (addMesh.HasVertexColors(0))
 			{
@@ -49,6 +49,8 @@ namespace VulkanProject
 			for (auto j = 0u; j < Face.mNumIndices; ++j)
 				mesh.meshIndices.indexVector.push_back(Face.mIndices[j]);
 		}
+
+		//std::reverse(mesh.meshIndices.indexVector.begin(), mesh.meshIndices.indexVector.end());
 
 		meshVector.push_back(mesh);
 	}

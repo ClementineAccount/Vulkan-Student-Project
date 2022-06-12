@@ -26,7 +26,7 @@ namespace VulkanProject
 
 	struct Indices
 	{
-		using indicesType = uint16_t;
+		using indicesType = uint32_t;
 		std::vector<indicesType> indexVector;
 	};
 
