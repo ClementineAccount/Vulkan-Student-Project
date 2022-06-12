@@ -1,5 +1,7 @@
 #pragma once
 
+
+
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,14 +18,28 @@
 #include <assimp/postprocess.h>
 
 #include <unordered_map>
-
 #include <vulkan/vulkan.hpp>
 #include <iostream>
-
-
+#include "Texture.h"
 
 namespace VulkanProject
 {
+    struct modelTransforms
+    {
+        glm::vec3 pos;
+        glm::vec3 rotDegrees;
+        glm::vec3 scale;
+    };
+
+    //For model view transformations
+    struct modelObject
+    {
+        Model model;
+        modelTransforms trans;
+
+    };
+
+
     VkCommandPool commandPool;
 
     std::vector<VkCommandBuffer> commandBuffers;
@@ -43,4 +59,8 @@ namespace VulkanProject
     VkExtent2D swapChainExtent;
 
     VkPipelineLayout _meshPipelineLayout;
+
+    std::vector<Texture> textureVector;
+
+    Model currModel;
 }

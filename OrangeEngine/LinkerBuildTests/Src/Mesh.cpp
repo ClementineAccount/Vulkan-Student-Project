@@ -1,46 +1,95 @@
+#pragma once
 #include "Mesh.h"
 
-
-#include <assert.h>
+#include <glm/glm.hpp>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <assert.h>
+
+
+
 namespace VulkanProject
 {
-	void Mesh::loadModel(std::string const& filePath)
+
+	void Model::ProcessMesh(const aiMesh& addMesh, const aiScene& Scene)
 	{
-		//ctrlc ctrlv: https://learnopengl.com/Model-Loading/Model
+		Mesh mesh;
+
+		//Go through the vertices to add positions, normals and so on
+		for (auto i = 0u; i < addMesh.mNumVertices; ++i)
+		{
+			mesh.meshVertices.positions.emplace_back(addMesh.mVertices[i].x, addMesh.mVertices[i].y, addMesh.mVertices[i].z);
+
+			//Add if there are normals
+			if (addMesh.HasNormals())
+			{
+				mesh.meshVertices.normals.emplace_back(glm::vec3(addMesh.mNormals[i].x, addMesh.mNormals[i].y, addMesh.mNormals[i].z));
+			}
+
+			if (addMesh.HasVertexColors(0))
+			{
+				//Only add the first color set
+				mesh.meshVertices.colors.emplace_back(glm::vec3(addMesh.mColors[0][i].r, addMesh.mColors[0][i].g, addMesh.mColors[0][i].b));
+			}
+			else
+			{
+				static glm::vec3 defaultColor = glm::vec3(1.0f, 0.0f, 0.0f);
+				mesh.meshVertices.colors.push_back(defaultColor);
+			}
+		}
+
+		//Go through the indices
+		for (auto i = 0u; i < addMesh.mNumFaces; ++i)
+		{
+			const auto& Face = addMesh.mFaces[i];
+
+			for (auto j = 0u; j < Face.mNumIndices; ++j)
+				mesh.meshIndices.indexVector.push_back(Face.mIndices[j]);
+		}
+
+		meshVector.push_back(mesh);
+	}
+
+	void Model::ProcessNode(const aiNode& Node, const aiScene& Scene)
+	{
+		for (auto i = 0u, end = Node.mNumMeshes; i < end; ++i)
+		{
+			aiMesh* pMesh = Scene.mMeshes[Node.mMeshes[i]];
+			ProcessMesh(*pMesh, Scene);
+		}
+
+		for (auto i = 0u; i < Node.mNumChildren; ++i)
+		{
+			ProcessNode(*Node.mChildren[i], Scene);
+		}
+	}
+
+	void Model::loadModel(std::string const& filePath)
+	{
 		Assimp::Importer importer;
-		const aiScene* meshScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs);
+		const aiScene* meshScene = importer.ReadFile(filePath
+			, aiProcess_Triangulate                // Make sure we get triangles rather than nvert polygons
+			| aiProcess_LimitBoneWeights           // 4 weights for skin model max
+			| aiProcess_GenUVCoords                // Convert any type of mapping to uv mapping
+			| aiProcess_TransformUVCoords          // preprocess UV transformations (scaling, translation ...)
+			| aiProcess_FindInstances              // search for instanced meshes and remove them by references to one master
+			| aiProcess_CalcTangentSpace           // calculate tangents and bitangents if possible
+			| aiProcess_JoinIdenticalVertices      // join identical vertices/ optimize indexing
+			| aiProcess_RemoveRedundantMaterials   // remove redundant materials
+			| aiProcess_FindInvalidData            // detect invalid model data, such as invalid normal vectors
+			| aiProcess_PreTransformVertices       // pre-transform all vertices
+			| aiProcess_FlipUVs                    // flip the V to match the Vulkans way of doing UVs
+		);
+
 
 		//To Do: Replace this with proper runtime error handling for Release mode
 		assert(meshScene->mRootNode && ("failed to load the mesh at: " + filePath).c_str());
 		assert(meshScene->mMeshes && "no mesh?");
 
-		//What if there are child meshes? You could add them to a list using bfs or dfs but we will do that later
-
-		//"Assimp calls their vertex position array mVertices which isn't the most intuitive name."
-		for (size_t i = 0; i < meshScene->mNumMeshes; ++i)
-		{
-			aiMesh* currMesh = meshScene->mMeshes[i];
-			for (size_t j = 0; j < currMesh->mNumVertices; ++j)
-			{
-				meshVertices.positions.emplace_back(glm::vec3(currMesh->mVertices[j].x, currMesh->mVertices[j].y, currMesh->mVertices[j].z));
-			}
-
-
-			for (unsigned int i = 0; i < currMesh->mNumFaces; i++)
-			{
-				aiFace face = currMesh->mFaces[i];
-				for (unsigned int j = 0; j < face.mNumIndices; j++)
-					meshIndices.indexVector.push_back(face.mIndices[j]);
-			}
-
-		}
-
-		//std::reverse(meshIndices.indexVector.begin(), meshIndices.indexVector.end());
+		ProcessNode(*meshScene->mRootNode, *meshScene);
 
 	}
 }

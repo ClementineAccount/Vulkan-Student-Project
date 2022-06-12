@@ -143,14 +143,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Dependencies\tinyddsloader.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Src\Mesh.h" />
+    <ClInclude Include="Src\Texture.h" />
+    <ClInclude Include="Src\tinyddsloader.h" />
     <ClInclude Include="Src\vulkanGlobals.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\main.cpp" />
     <ClCompile Include="Src\Mesh.cpp" />
+    <ClCompile Include="Src\Texture.cpp" />
+    <ClCompile Include="Src\tinyddsloader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Student Project.rc" />

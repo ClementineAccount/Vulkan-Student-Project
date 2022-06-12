@@ -48,7 +48,7 @@
 
 
 
-#define DEFAULT_CUBE
+//#define DEFAULT_CUBE
 
 
 constexpr bool isTesting = true;
@@ -727,6 +727,42 @@ namespace VulkanProject
         vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
     }
+
+
+    void createVertexBufferFromVertices(Vertices verticesList, VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory)
+    {
+        std::vector<Vertex> vertexList = VerticesToBuffer(verticesList);
+
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(vertexList[0]) * vertexList.size();
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(currGraphicsCard.logicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create vertex buffer!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(currGraphicsCard.logicalDevice, vertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(currGraphicsCard.logicalDevice, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+        }
+
+        vkBindBufferMemory(currGraphicsCard.logicalDevice, vertexBuffer, vertexBufferMemory, 0);
+
+        void* data;
+        vkMapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+        memcpy(data, vertexList.data(), (size_t)bufferInfo.size);
+        vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
+    }
+
 
     void updateUniformBuffer(uint32_t currentImage, glm::vec3 translate = glm::vec3(0.0f, 0.0f, 0.0f)) {
         static auto startTime = std::chrono::high_resolution_clock::now();
@@ -1685,11 +1721,7 @@ namespace VulkanProject
         vkAcquireNextImageKHR(currGraphicsCard.logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-
-        
         recordTriangleCommandBuffer(commandBuffers[currentFrame], imageIndex);
-
-
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1729,6 +1761,131 @@ namespace VulkanProject
 
     }
 
+    void recordModelCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, Model const& modelDraw, glm::vec3 translate = glm::vec3(0.f, 0.0f, 0.0f))
+    {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        VkClearValue clearColorReal = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColorReal;
+
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &currModel.meshVector[0].vertexBuffer, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+
+        static auto startTime = std::chrono::high_resolution_clock::now();
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+        static glm::vec3 camPos = { 3.f, 3.f, 3.f };
+        glm::mat4 view = glm::mat4(1.f);
+
+        glm::mat4 modelMat;
+        glm::mat4 projection;
+
+        modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        modelMat = glm::rotate(modelMat, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelMat = glm::scale(modelMat, glm::vec3(1.0f, 1.0f, 1.0f));
+
+
+        view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
+        projection[1][1] *= -1;
+
+        //calculate final mesh matrix
+        glm::mat4 mesh_matrix = projection * view * modelMat;
+
+        MeshPushConstants constants;
+        constants.render_matrix = mesh_matrix;
+
+        //upload the matrix to the GPU via push constants
+        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+
+        //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+#ifdef DEFAULT_CUBE
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+#else
+        //Loop through every mesh and draw the index accordingly
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(currModel.meshVector[0].meshIndices.indexVector.size()), 1, 0, 0, 0);
+#endif
+
+
+        vkCmdEndRenderPass(commandBuffer);
+
+        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record triangle comamnd buffer!");
+        }
+    }
+
+    void drawModel(Model const& model)
+    {
+        vkWaitForFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkResetFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame]);
+
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(currGraphicsCard.logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+
+        recordModelCommandBuffer(commandBuffers[currentFrame], imageIndex, model);
+
+        //recordTriangleCommandBuffer(commandBuffers[currentFrame], imageIndex);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame]};
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+
+        VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame]};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+
+        VkSwapchainKHR swapChains[] = { swapChain };
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+
+        presentInfo.pImageIndices = &imageIndex;
+
+        vkQueuePresentKHR(graphicsQueue, &presentInfo);
+
+        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
     void loadObjects()
     {
         std::string sphereMod = "Models/sphere_modified.obj";
@@ -1743,9 +1900,11 @@ namespace VulkanProject
         std::string fourSphere = "Models/4Sphere.obj";
         std::string cuteAngel = "Models/lucy_princeton.obj";
 
-        meshLoad.loadModel(skullFilePath);
+        currModel.loadModel(sphere);
 
-        vertex_load_model = VerticesToBuffer(meshLoad.meshVertices);
+        //meshLoad.loadModel(skullFilePath);
+
+        //vertex_load_model = VerticesToBuffer(meshLoad.meshVertices);
 
     }
 
@@ -1868,7 +2027,7 @@ namespace VulkanProject
             //presentFrameSimple();
 
             
-            drawTriangle();
+            drawModel(currModel);
         
 
             if (PeekMessage(&msg, currWinMainData.hWnd, 0, 0, PM_REMOVE))
@@ -1887,7 +2046,14 @@ namespace VulkanProject
     }
 
 
+    void createTextures()
+    {
+        std::string textureFolderPath = "Textures/gen";
+        std::string boxDiffuseName = "DiffuseMap.dds";
 
+        Texture textureDiffuse;
+        //textureDiffuse.makeTexture(textureFolderPath + boxDiffuseName);
+    }
 
 
     void cleanup()
@@ -2003,12 +2169,16 @@ int main()
     //Loading meshes using assimp
     VulkanProject::loadObjects();
 
+    VulkanProject::createTextures();
+
+
 #ifdef  DEFAULT_CUBE
     VulkanProject::createVertexBuffer(VulkanProject::vertices);
     VulkanProject::createIndexBuffer(VulkanProject::indices);
 #else
-    VulkanProject::createVertexBuffer(VulkanProject::vertex_load_model);
-    VulkanProject::createIndexBuffer(VulkanProject::meshLoad.meshIndices.indexVector);
+    VulkanProject::createVertexBufferFromVertices(VulkanProject::currModel.meshVector[0].meshVertices, 
+        VulkanProject::currModel.meshVector[0].vertexBuffer, VulkanProject::currModel.meshVector[0].vertexBufferMemory);
+    VulkanProject::createIndexBuffer(VulkanProject::currModel.meshVector[0].meshIndices.indexVector);
 
 #endif //  DEFAULT_CUBE
 

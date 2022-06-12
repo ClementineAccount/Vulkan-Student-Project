@@ -21,7 +21,10 @@
     <ClInclude Include="Src\Mesh.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Dependencies\tinyddsloader.h">
+    <ClInclude Include="Src\Texture.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\tinyddsloader.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -30,6 +33,12 @@
       <Filter>Source Files\main</Filter>
     </ClCompile>
     <ClCompile Include="Src\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\tinyddsloader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
