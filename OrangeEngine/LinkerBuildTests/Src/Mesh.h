@@ -10,7 +10,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-
+#include <unordered_map>
 #include "Texture.h"
 
 namespace VulkanProject
@@ -51,18 +51,20 @@ namespace VulkanProject
 
 
 
-	enum class MaterialType
+	enum class TextureType
 	{
 		NONE,
-		DIFFUSE
+		DIFFUSE,
+		ALBEDO,
 	};
 
-	struct Material
-	{
-		MaterialType type;
+	//struct Material
+	//{
+	//	MaterialType type;
 
-		
-	};
+	//	//Do not create the memory here
+	//	Texture* textureRef;
+	//};
 
 	//Model can contain many meshes 
 	class Model
@@ -70,12 +72,17 @@ namespace VulkanProject
 	public:
 		std::vector<Mesh> meshVector;
 
-		void loadModel(std::string const& filePath);
-		void ProcessMesh(const aiMesh& addMesh, const aiScene& Scene);
-		void ProcessNode(const aiNode& Node, const aiScene& scene);
+		//First string is the type, second string is the name
+		std::unordered_map<TextureType, std::string> textureIDs;
+
+		//noexcept to make it faster in debug mode
+
+		void loadModel(std::string const& filePath) noexcept;
+		void ProcessMesh(const aiMesh& addMesh, const aiScene& Scene) noexcept;
+		void ProcessNode(const aiNode& Node, const aiScene& scene) noexcept;
 
 		//Referenced from xGPU 
-		void ImportMaterialAndTextures(const aiMaterial& Material, const aiScene& Scene);
+		void ImportMaterialAndTextures(const aiMaterial& Material, const aiScene& Scene, aiTextureType type);
 
 
 

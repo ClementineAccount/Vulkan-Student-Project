@@ -14,7 +14,7 @@
 namespace VulkanProject
 {
 
-	void Model::ProcessMesh(const aiMesh& addMesh, const aiScene& Scene)
+	void Model::ProcessMesh(const aiMesh& addMesh, const aiScene& Scene) noexcept
 	{
 		Mesh mesh;
 
@@ -58,9 +58,19 @@ namespace VulkanProject
 		//std::reverse(mesh.meshIndices.indexVector.begin(), mesh.meshIndices.indexVector.end());
 
 		meshVector.push_back(mesh);
+
+		aiMaterial* material = Scene.mMaterials[addMesh.mMaterialIndex];
+		ImportMaterialAndTextures(*material, Scene, aiTextureType_DIFFUSE);
+		ImportMaterialAndTextures(*material, Scene, aiTextureType_BASE_COLOR);
+		ImportMaterialAndTextures(*material, Scene, aiTextureType_SPECULAR);
+		ImportMaterialAndTextures(*material, Scene, aiTextureType_AMBIENT_OCCLUSION);
+		ImportMaterialAndTextures(*material, Scene, aiTextureType_NORMALS);
+		ImportMaterialAndTextures(*material, Scene, aiTextureType_DIFFUSE_ROUGHNESS);
+
+
 	}
 
-	void Model::ProcessNode(const aiNode& Node, const aiScene& Scene)
+	void Model::ProcessNode(const aiNode& Node, const aiScene& Scene) noexcept
 	{
 		for (auto i = 0u, end = Node.mNumMeshes; i < end; ++i)
 		{
@@ -74,7 +84,7 @@ namespace VulkanProject
 		}
 	}
 
-	void Model::loadModel(std::string const& filePath)
+	void Model::loadModel(std::string const& filePath) noexcept
 	{
 		Assimp::Importer importer;
 		const aiScene* meshScene = importer.ReadFile(filePath
@@ -100,9 +110,13 @@ namespace VulkanProject
 
 	}
 
-	void Model::ImportMaterialAndTextures(const aiMaterial& Material, const aiScene& Scene)
+	void Model::ImportMaterialAndTextures(const aiMaterial& loadMaterial, const aiScene& Scene, aiTextureType type)
 	{
-
-
+		for (unsigned int i = 0; i < loadMaterial.GetTextureCount(type); i++)
+		{
+			aiString str;
+			loadMaterial.GetTexture(type, i, &str);
+			std::cout << "filepath: " << str.C_Str() << std::endl;
+		}
 	}
 }
