@@ -414,18 +414,21 @@ namespace VulkanProject
 
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
-
         VkImageView textureImageView;
-
         VkSampler textureSampler;
 
         tinyddsloader::DDSFile ddsImage;
-        void makeTexture(std::string const& filePath);
+
+        //Some dependencies on functions in main. Created a function in main that passes by reference as a 'placeholder' until a refactor after project complete
+        //void makeTexture(std::string const& filePath);
     };
 
-    void Texture::makeTexture(std::string const& filePath)
+
+
+    void makeTexture(std::string const& filePath, Texture& textureRef)
     {
-        tinyddsloader::Result result = ddsImage.Load(filePath.c_str());
+
+        tinyddsloader::Result result = textureRef.ddsImage.Load(filePath.c_str());
         if (result != tinyddsloader::Result::Success)
         {
             throw std::runtime_error("failed to load texture at: " + filePath);
@@ -437,16 +440,16 @@ namespace VulkanProject
         //    imageFormat = tinyddsloader::DDSFile::DXGIFormat::R32G32B32A32_Float;
         //}
 
-        int height = ddsImage.GetHeight();
-        int width = ddsImage.GetWidth();
+        int height = textureRef.ddsImage.GetHeight();
+        int width = textureRef.ddsImage.GetWidth();
 
-        tinyddsloader::DDSFile::DXGIFormat imageFormat = ddsImage.GetFormat();
-        unsigned int bytesPerPixel = ddsImage.GetBitsPerPixel(imageFormat) / CHAR_BIT;
+        tinyddsloader::DDSFile::DXGIFormat imageFormat = textureRef.ddsImage.GetFormat();
+        unsigned int bytesPerPixel = textureRef.ddsImage.GetBitsPerPixel(imageFormat) / CHAR_BIT;
 
         VkDeviceSize imageSize = bytesPerPixel * height * width;
 
         //To Do: case switch for all possible formats?
-        VkFormat textureFormat;
+        VkFormat textureFormat = VK_FORMAT_BC3_UNORM_BLOCK;
         if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::BC3_UNorm)
         {
             textureFormat = VK_FORMAT_BC3_UNORM_BLOCK;
@@ -459,21 +462,21 @@ namespace VulkanProject
 
         void* data;
         vkMapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, ddsImage.GetImageData()->m_mem, static_cast<size_t>(imageSize));
+        memcpy(data, textureRef.ddsImage.GetImageData()->m_mem, static_cast<size_t>(imageSize));
         vkUnmapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory);
 
-        createImage(height, width, textureFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        createImage(height, width, textureFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureRef.textureImage, textureRef.textureImageMemory);
 
-        transitionImageLayout(textureImage, textureFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-        transitionImageLayout(textureImage, textureFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        transitionImageLayout(textureRef.textureImage, textureFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        copyBufferToImage(stagingBuffer, textureRef.textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        transitionImageLayout(textureRef.textureImage, textureFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
 
-        textureImageView = createImageView(textureImage, textureFormat);
+        textureRef.textureImageView = createImageView(textureRef.textureImage, textureFormat);
 
-        createTextureSampler(textureSampler);
+        createTextureSampler(textureRef.textureSampler);
     };
 
 
@@ -2408,7 +2411,7 @@ namespace VulkanProject
         std::string boxDiffuseName = "SpecularMap.dds";
 
         Texture textureDiffuse;
-        textureDiffuse.makeTexture(textureFolderPath + boxDiffuseName);
+        makeTexture(textureFolderPath + boxDiffuseName, textureDiffuse);
         textureVector.push_back(textureDiffuse);
     }
 

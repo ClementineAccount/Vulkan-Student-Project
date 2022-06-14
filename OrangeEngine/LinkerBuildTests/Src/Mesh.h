@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 
-
 #include <vulkan/vulkan.hpp>
 
 #include <glm/glm.hpp>
@@ -10,6 +9,9 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
+
+#include "Texture.h"
 
 namespace VulkanProject
 {
@@ -30,7 +32,7 @@ namespace VulkanProject
 		std::vector<indicesType> indexVector;
 	};
 
-	class Mesh
+	struct Mesh
 	{
 	public:
 		Vertices meshVertices;
@@ -47,6 +49,21 @@ namespace VulkanProject
 
 	};
 
+
+
+	enum class MaterialType
+	{
+		NONE,
+		DIFFUSE
+	};
+
+	struct Material
+	{
+		MaterialType type;
+
+		
+	};
+
 	//Model can contain many meshes 
 	class Model
 	{
@@ -56,6 +73,10 @@ namespace VulkanProject
 		void loadModel(std::string const& filePath);
 		void ProcessMesh(const aiMesh& addMesh, const aiScene& Scene);
 		void ProcessNode(const aiNode& Node, const aiScene& scene);
+
+		//Referenced from xGPU 
+		void ImportMaterialAndTextures(const aiMaterial& Material, const aiScene& Scene);
+
 
 
 	};

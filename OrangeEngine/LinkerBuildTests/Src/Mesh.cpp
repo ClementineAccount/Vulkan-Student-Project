@@ -99,4 +99,10 @@ namespace VulkanProject
 		ProcessNode(*meshScene->mRootNode, *meshScene);
 
 	}
+
+	void Model::ImportMaterialAndTextures(const aiMaterial& Material, const aiScene& Scene)
+	{
+
+
+	}
 }
