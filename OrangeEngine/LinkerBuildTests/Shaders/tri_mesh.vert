@@ -38,6 +38,7 @@ void main() {
     fragTexCoord = inTexCoord;    
 
 
+
     mat3 normalMatrix = transpose(inverse(mat3(PushConstants.model_matrix)));
     vec3 T = normalize(normalMatrix * inTangent);
     vec3 N = normalize(normalMatrix * inNormal);

@@ -8,6 +8,9 @@ layout(binding = 1) uniform sampler2D texSampler[4];
 //[3] = aoMap Texture
 
 
+
+const float PI = 3.14159265359;
+
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 TangentLightPos;
@@ -67,33 +70,68 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 }
 
 
-
 void main() {
 
+
+    vec3 albedo     = pow(texture(texSampler[0], fragTexCoord).rgb, vec3(2.2));
+    float roughness = texture(texSampler[2], fragTexCoord).r;
+    float ao        = texture(texSampler[3], fragTexCoord).r;
+
     // obtain normal from normal map in range [0,1]
-    vec3 normal = texture(texSampler[1], fragTexCoord).rgb;
-
+    vec3 N = texture(texSampler[1], fragTexCoord).rgb;
+    
     // transform normal vector to range [-1,1]
-    normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
+    N = normalize(N * 2.0 - 1.0);  // this normal is in tangent space
 
-    // get base color
-    vec3 color = texture(texSampler[0], fragTexCoord).rgb;
+    vec3 V = normalize(cameraPos - fragPos);
 
-    // ambient
-    vec3 ambient = 0.1 * color;
+    vec3 F0 = albedo;
 
-    // diffuse
-    vec3 lightDir = normalize(TangentLightPos - TangentFragPos);
+    // reflectance equation
+    vec3 Lo = vec3(0.0);
 
-    float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * color;
+    // calculate per-light radiance
+    vec3 L = normalize(lightPos - fragPos);
+    vec3 H = normalize(V + L);
+    float distance = length(lightPos - fragPos);
+    float attenuation = 1.0 / (distance * distance);
+    vec3 radiance = lightPos * attenuation;
 
-    // specular
-    vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
-    vec3 reflectDir = reflect(-lightDir, normal);
-    vec3 halfwayDir = normalize(lightDir + viewDir);  
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+    // Cook-Torrance BRDF
+    float NDF = DistributionGGX(N, H, roughness);   
+    float G   = GeometrySmith(N, V, L, roughness);      
+    vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
+        
+    vec3 numerator    = NDF * G * F; 
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+    vec3 specular = numerator / denominator;
+    
+    // kS is equal to Fresnel
+    vec3 kS = F;
 
-    vec3 specular = vec3(0.2) * spec;
-    outColor = vec4(ambient + diffuse + specular, 1.0);
+    // for energy conservation, the diffuse and specular light can't
+    // be above 1.0 (unless the surface emits light); to preserve this
+    // relationship the diffuse component (kD) should equal 1.0 - kS.
+    
+    vec3 kD = vec3(1.0) - kS;
+    
+    kD *= 1.0;
+
+    // scale light by NdotL
+    float NdotL = max(dot(N, L), 0.0);        
+
+    // add to outgoing radiance Lo
+    Lo += (kD * albedo / PI + specular) * radiance * NdotL;  // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+
+
+    vec3 ambient = vec3(0.03) * albedo * ao;
+    
+    vec3 color = ambient + Lo;
+
+    // HDR tonemapping
+    color = color / (color + vec3(1.0));
+    // gamma correct
+    color = pow(color, vec3(1.0/2.2)); 
+
+    outColor = vec4(color, 1.0);
 }
