@@ -1098,7 +1098,7 @@ namespace VulkanProject
 
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 4; //To Do: Make a way to have this update without having to hardcode
+        samplerLayoutBinding.descriptorCount = 5; //To Do: Make a way to have this update without having to hardcode
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -1266,6 +1266,7 @@ namespace VulkanProject
             VkDescriptorImageInfo baseImage = makeImageInfo(TextureNames::carBase);
             VkDescriptorImageInfo normalImage = makeImageInfo(TextureNames::carNormal);
             VkDescriptorImageInfo AOImage = makeImageInfo(TextureNames::carAO);
+            VkDescriptorImageInfo metalImage = makeImageInfo(TextureNames::carMetal);
 
             std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
@@ -1277,11 +1278,12 @@ namespace VulkanProject
             descriptorWrites[0].descriptorCount = 1;
             descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-            std::array <VkDescriptorImageInfo, 4> imageInfoArray;
+            std::array <VkDescriptorImageInfo, 5> imageInfoArray;
             imageInfoArray[0] = baseImage;
             imageInfoArray[1] = normalImage;
             imageInfoArray[2] = roughImage;
             imageInfoArray[3] = AOImage;
+            imageInfoArray[4] = metalImage;
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = descriptorSets[i];
@@ -2317,9 +2319,9 @@ namespace VulkanProject
 
 
         static float posY = 0.0f;
-        static float posX = 0.0f;
-        posX += time * 0.001f;
-        lightPos = { posX, 3.0f, 0.0f };
+        static float posX = 0.3f;
+        //posX += time * 0.001f;
+        lightPos = { posX, 3.2f, 0.0f };
 
         view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
@@ -2433,11 +2435,14 @@ namespace VulkanProject
             std::string carNormalPath = textureFilePath + "_Normal_DirectX.dds";
             std::string carRoughnessPath = textureFilePath + "_Roughness.dds";
             std::string carAOPath = textureFilePath + "_Mixed_AO.dds";
+            std::string carMetalPath = textureFilePath + "_Metallic.dds";
+
 
             std::unique_ptr<Texture> baseTexture = std::make_unique<Texture>();
             std::unique_ptr<Texture> normalTexture = std::make_unique<Texture>();
             std::unique_ptr<Texture> roughTexture = std::make_unique<Texture>();
             std::unique_ptr<Texture> AOTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> metallicTexture = std::make_unique<Texture>();
 
             makeTexture(carBaseColorPath, *baseTexture.get());
             textureMap.insert({ TextureNames::carBase, *baseTexture.get()});
@@ -2450,6 +2455,9 @@ namespace VulkanProject
 
             makeTexture(carAOPath, *AOTexture);
             textureMap.insert({ TextureNames::carAO, *AOTexture });
+
+            makeTexture(carMetalPath, *metallicTexture);
+            textureMap.insert({ TextureNames::carMetal, *metallicTexture });
         }
 
 

@@ -1,12 +1,12 @@
 #version 450
 
-layout(binding = 1) uniform sampler2D texSampler[4];
+layout(binding = 1) uniform sampler2D texSampler[5];
 
 //[0] = albedo
 //[1] = normalmap texture
 //[2] = roughnessMap texture
 //[3] = aoMap Texture
-
+//[4] = metallic texture
 
 
 const float PI = 3.14159265359;
@@ -77,6 +77,8 @@ void main() {
     float roughness = texture(texSampler[2], fragTexCoord).r;
     float ao        = texture(texSampler[3], fragTexCoord).r;
 
+    float metallic  = texture(texSampler[4], fragTexCoord).r;
+
     // obtain normal from normal map in range [0,1]
     vec3 N = texture(texSampler[1], fragTexCoord).rgb;
     
@@ -85,7 +87,8 @@ void main() {
 
     vec3 V = normalize(cameraPos - fragPos);
 
-    vec3 F0 = albedo;
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
 
     // reflectance equation
     vec3 Lo = vec3(0.0);
@@ -115,7 +118,7 @@ void main() {
     
     vec3 kD = vec3(1.0) - kS;
     
-    kD *= 1.0;
+    kD *= 1.0 - metallic;	 
 
     // scale light by NdotL
     float NdotL = max(dot(N, L), 0.0);        

@@ -81,5 +81,6 @@ namespace VulkanProject
         const char carNormal[] = "carNormal";
         const char carRough[] = "carRough";
         const char carAO[] = "carAO";
+        const char carMetal[] = "carMetal";
     }
 }
