@@ -1197,13 +1197,13 @@ namespace VulkanProject
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = currBaseTexture->textureImageView;
-            imageInfo.sampler = currBaseTexture->textureSampler;
+            imageInfo.imageView = textureMap[TextureNames::carBase].textureImageView;
+            imageInfo.sampler = textureMap[TextureNames::carBase].textureSampler;
 
             VkDescriptorImageInfo imageInfo2{};
             imageInfo2.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo2.imageView = currBaseTexture->textureImageView;
-            imageInfo2.sampler = currBaseTexture->textureSampler;
+            imageInfo2.imageView = textureMap[TextureNames::carNormal].textureImageView;
+            imageInfo2.sampler = textureMap[TextureNames::carNormal].textureSampler;
 
             std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
@@ -1217,7 +1217,7 @@ namespace VulkanProject
 
             std::array <VkDescriptorImageInfo, 2> imageInfoArray;
             imageInfoArray[0] = imageInfo;
-            imageInfoArray[1] = imageInfo;
+            imageInfoArray[1] = imageInfo2;
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = descriptorSets[i];
@@ -2354,12 +2354,21 @@ namespace VulkanProject
         //car 
         {
             currModel.loadModel(carFilePath);
-            std::string carBaseColorPath = "Models/vintage-car/_Base_Color.dds";
 
-            makeTexture(carBaseColorPath, baseColorCar);
-            textureMap.insert({ "car_base", baseColorCar });
+            std::string textureFilePath = "Models/vintage-car/textures/";
 
-            currBaseTexture = &baseColorCar;
+            std::string carBaseColorPath = textureFilePath + "_Base_Color.dds";
+            std::string carNormalPath = textureFilePath + "_Normal_DirectX.dds";
+            std::string carRoughnessPath = textureFilePath + "_Roughness.dds";
+
+            std::unique_ptr<Texture> baseTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> normalTexture = std::make_unique<Texture>();
+
+            makeTexture(carBaseColorPath, *baseTexture.get());
+            textureMap.insert({ TextureNames::carBase, *baseTexture.get()});
+
+            makeTexture(carNormalPath, *normalTexture);
+            textureMap.insert({ TextureNames::carNormal, *normalTexture });
         }
 
 

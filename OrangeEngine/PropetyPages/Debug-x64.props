@@ -11,6 +11,13 @@
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)\Dependencies\assimp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)Models" "$(TargetDir)Models" /e /y /i /r
+xcopy "$(ProjectDir)Shaders" "$(TargetDir)Shaders" /e /y /i /r</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>call "$(ProjectDir)Shaders/compile_fragment_shader.bat"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>

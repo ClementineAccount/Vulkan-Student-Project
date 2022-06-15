@@ -62,8 +62,9 @@ namespace VulkanProject
 
     std::unordered_map<std::string, Texture> textureMap;
 
-    Texture baseColorCar;
-
-    Texture* currBaseTexture;
-    Texture* currSpecularTexture;
+    namespace TextureNames
+    {
+        const char carBase[] = "carBase";
+        const char carNormal[] = "carNormal";
+    }
 }

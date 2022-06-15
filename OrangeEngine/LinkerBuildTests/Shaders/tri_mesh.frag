@@ -1,5 +1,8 @@
 #version 450
 
+//[0] = base color
+//[1] = normalmap texture
+
 layout(binding = 1) uniform sampler2D texSampler[2];
 
 layout(location = 0) in vec3 fragColor;
