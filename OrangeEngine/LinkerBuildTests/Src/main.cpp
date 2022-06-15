@@ -98,55 +98,6 @@ namespace VulkanProject
     //---To Do: Move this stuff to a proper global container pattern of sorts---
 
 
-    struct Vertex {
-        glm::vec3 pos;
-        glm::vec3 color;
-        glm::vec2 texCoord;
-
-        glm::vec3 normal;
-
-
-        static VkVertexInputBindingDescription getBindingDescription() {
-            VkVertexInputBindingDescription bindingDescription{};
-            bindingDescription.binding = 0;
-            bindingDescription.stride = sizeof(Vertex);
-            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-            return bindingDescription;
-        }
-
-        static const VkFormat textureFormat = VK_FORMAT_R32G32_SFLOAT;
-        static const VkFormat vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-        static const VkFormat colorFormat = VK_FORMAT_R32G32B32_SFLOAT;
-
-        static const VkFormat normalFormat = VK_FORMAT_R32G32B32_SFLOAT;
-
-        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
-
-            attributeDescriptions[0].binding = 0;
-            attributeDescriptions[0].location = 0;
-            attributeDescriptions[0].format = vertexFormat;
-            attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-            attributeDescriptions[1].binding = 0;
-            attributeDescriptions[1].location = 1;
-            attributeDescriptions[1].format = colorFormat;
-            attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-            attributeDescriptions[2].binding = 0;
-            attributeDescriptions[2].location = 2;
-            attributeDescriptions[2].format = textureFormat;
-            attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-            attributeDescriptions[3].binding = 0;
-            attributeDescriptions[3].location = 3;
-            attributeDescriptions[3].format = normalFormat;
-            attributeDescriptions[3].offset = offsetof(Vertex, normal);
-
-            return attributeDescriptions;
-        }
-    };
 
     //This section mostly adapted from:
     //https://vulkan-tutorial.com/Texture_mapping/Images
@@ -481,6 +432,225 @@ namespace VulkanProject
     std::vector<Texture> textureVector;
 
 
+    struct Vertex {
+        glm::vec3 pos;
+        glm::vec3 color;
+        glm::vec2 texCoord;
+
+        glm::vec3 normal;
+        glm::vec3 tangent;
+        glm::vec3 biTangent;
+
+
+        static VkVertexInputBindingDescription getBindingDescription() {
+            VkVertexInputBindingDescription bindingDescription{};
+            bindingDescription.binding = 0;
+            bindingDescription.stride = sizeof(Vertex);
+            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+            return bindingDescription;
+        }
+
+        static const VkFormat textureFormat = VK_FORMAT_R32G32_SFLOAT;
+        static const VkFormat vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+        static const VkFormat colorFormat = VK_FORMAT_R32G32B32_SFLOAT;
+
+        static const VkFormat normalFormat = VK_FORMAT_R32G32B32_SFLOAT;
+        static const VkFormat tangentFormat = VK_FORMAT_R32G32B32_SFLOAT;
+        static const VkFormat biTangetFormat = VK_FORMAT_R32G32B32_SFLOAT;
+
+        static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 6> attributeDescriptions{};
+
+            attributeDescriptions[0].binding = 0;
+            attributeDescriptions[0].location = 0;
+            attributeDescriptions[0].format = vertexFormat;
+            attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+            attributeDescriptions[1].binding = 0;
+            attributeDescriptions[1].location = 1;
+            attributeDescriptions[1].format = colorFormat;
+            attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+            attributeDescriptions[2].binding = 0;
+            attributeDescriptions[2].location = 2;
+            attributeDescriptions[2].format = textureFormat;
+            attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+            attributeDescriptions[3].binding = 0;
+            attributeDescriptions[3].location = 3;
+            attributeDescriptions[3].format = normalFormat;
+            attributeDescriptions[3].offset = offsetof(Vertex, normal);
+
+            attributeDescriptions[4].binding = 0;
+            attributeDescriptions[4].location = 4;
+            attributeDescriptions[4].format = tangentFormat;
+            attributeDescriptions[4].offset = offsetof(Vertex, tangent);
+
+            attributeDescriptions[5].binding = 0;
+            attributeDescriptions[5].location = 5;
+            attributeDescriptions[5].format = biTangetFormat;
+            attributeDescriptions[5].offset = offsetof(Vertex, biTangent);
+
+            return attributeDescriptions;
+        }
+    };
+
+
+
+    //SOA to AOS conversion  helper function
+    std::vector<Vertex> VerticesToBuffer(Vertices const& vertices)
+    {
+        static const glm::vec3 defaultColor = { 1.0f, 0.0f, 0.0f };
+        static const glm::vec3 defaultNormal = { 0.0f, 0.0f, 0.0f };
+        static const glm::vec2 defaultTexCord = { 0.0f, 0.0f };
+        static const glm::vec3 defaultTangent = { 0.0f, 0.0f, 0.0f };
+        static const glm::vec3 defaultBiTanget = { 0.0f, 0.0f, 0.0f };
+
+        std::vector<Vertex> vertexList;
+        for (size_t i = 0; i < vertices.positions.size(); ++i)
+        {
+            Vertex vertexToInsert;
+            vertexToInsert.pos = vertices.positions[i];
+            vertexList.push_back(vertexToInsert);
+
+            if (i < vertices.colors.size())
+            {
+                vertexList[i].color = vertices.colors[i];
+            }
+            else
+            {
+                vertexList[i].color = defaultColor;
+            }
+
+            if (i < vertices.textureCords.size())
+            {
+                vertexList[i].texCoord = vertices.textureCords[i];
+            }
+            else
+            {
+                vertexList[i].texCoord = defaultTexCord;
+            }
+
+            if (i < vertices.normals.size())
+            {
+                vertexList[i].normal = vertices.normals[i];
+            }
+            else
+            {
+                vertexList[i].normal = defaultNormal;
+            }
+
+            if (i < vertices.tangent.size())
+            {
+                vertexList[i].tangent = vertices.tangent[i];
+            }
+            else
+            {
+                vertexList[i].tangent = defaultTangent;
+            }
+
+            if (i < vertices.biTangent.size())
+            {
+                vertexList[i].biTangent = vertices.biTangent[i];
+            }
+            else
+            {
+                vertexList[i].biTangent = defaultBiTanget;
+            }
+        }
+
+        return vertexList;
+    }
+
+    void createVertexBuffer(std::vector<Vertex> const& vertexList) {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(vertexList[0]) * vertexList.size();
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(currGraphicsCard.logicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create vertex buffer!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(currGraphicsCard.logicalDevice, vertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(currGraphicsCard.logicalDevice, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+        }
+
+        vkBindBufferMemory(currGraphicsCard.logicalDevice, vertexBuffer, vertexBufferMemory, 0);
+
+
+        void* data;
+        vkMapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+        memcpy(data, vertexList.data(), (size_t)bufferInfo.size);
+        vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
+
+    }
+
+    void createIndexBuffer(std::vector<Indices::indicesType> const& indexList) {
+        VkDeviceSize bufferSize = sizeof(indexList[0]) * indexList.size();
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indexList.data(), (size_t)bufferSize);
+        vkUnmapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+
+        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+        vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
+        vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
+    }
+
+    void createVertexBufferFromVertices(Vertices verticesList, VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory)
+    {
+        std::vector<Vertex> vertexList = VerticesToBuffer(verticesList);
+
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(vertexList[0]) * vertexList.size();
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(currGraphicsCard.logicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create vertex buffer!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(currGraphicsCard.logicalDevice, vertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(currGraphicsCard.logicalDevice, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+        }
+
+        vkBindBufferMemory(currGraphicsCard.logicalDevice, vertexBuffer, vertexBufferMemory, 0);
+
+        void* data;
+        vkMapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+        memcpy(data, vertexList.data(), (size_t)bufferInfo.size);
+        vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
+    }
+
+
     struct UniformBufferObject {
         alignas(16) glm::mat4 model;
         alignas(16) glm::mat4 view;
@@ -525,59 +695,11 @@ namespace VulkanProject
         {{  -0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
         {{  -0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
     };
-
-
     std::vector<Vertex> vertex_load_model;
     Mesh meshLoad;
     
 
 
-   //SOA to AOS conversion  helper function
-    std::vector<Vertex> VerticesToBuffer(Vertices const& vertices)
-    {
-        static const glm::vec3 defaultColor = { 1.0f, 0.0f, 0.0f };
-        static const glm::vec3 defaultNormal = { 0.0f, 0.0f, 0.0f };
-        static const glm::vec2 defaultTexCord = { 0.0f, 0.0f };
-        
-        std::vector<Vertex> vertexList;
-        for (size_t i = 0; i < vertices.positions.size(); ++i)
-        {
-            Vertex vertexToInsert;
-            vertexToInsert.pos = vertices.positions[i];
-            vertexList.push_back(vertexToInsert);
-
-            if (i < vertices.colors.size())
-            {
-                vertexList[i].color = vertices.colors[i];
-            }
-            else
-            {
-                vertexList[i].color = defaultColor;
-            }
-
-            if (i < vertices.textureCords.size())
-            {
-                vertexList[i].texCoord = vertices.textureCords[i];
-            }
-            else
-            {
-                vertexList[i].texCoord = defaultTexCord;
-            }
-
-            if (i < vertices.normals.size())
-            {
-                vertexList[i].normal = vertices.normals[i];
-            }
-            else
-            {
-                vertexList[i].normal = defaultNormal;
-            }
-
-
-        }
-
-        return vertexList;
-    }
 
     const std::vector<Indices::indicesType> indices = {
         0, 1, 2, 0, 2, 3, //front
@@ -590,17 +712,11 @@ namespace VulkanProject
 
     struct MeshPushConstants {
         glm::vec4 light_pos;
+        glm::vec4 camera_pos;
         glm::mat4 render_matrix;
     };
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
 
-    VkBuffer vertexBuffer2;
-    VkDeviceMemory vertexBufferMemory2;
-
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
 
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -1023,93 +1139,7 @@ namespace VulkanProject
     }
 
 
-    void createVertexBuffer(std::vector<Vertex> const& vertexList) {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = sizeof(vertexList[0]) * vertexList.size();
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(currGraphicsCard.logicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create vertex buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(currGraphicsCard.logicalDevice, vertexBuffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        if (vkAllocateMemory(currGraphicsCard.logicalDevice, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate vertex buffer memory!");
-        }
-
-        vkBindBufferMemory(currGraphicsCard.logicalDevice, vertexBuffer, vertexBufferMemory, 0);
-
-
-        void* data;
-        vkMapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-        memcpy(data, vertexList.data(), (size_t)bufferInfo.size);
-        vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
-
-    }
-
-    void createIndexBuffer(std::vector<Indices::indicesType> const& indexList) {
-        VkDeviceSize bufferSize = sizeof(indexList[0]) * indexList.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void* data;
-        vkMapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indexList.data(), (size_t)bufferSize);
-        vkUnmapMemory(currGraphicsCard.logicalDevice, stagingBufferMemory);
-
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-        vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
-    }
-
-
-    void createVertexBufferFromVertices(Vertices verticesList, VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory)
-    {
-        std::vector<Vertex> vertexList = VerticesToBuffer(verticesList);
-
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = sizeof(vertexList[0]) * vertexList.size();
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        if (vkCreateBuffer(currGraphicsCard.logicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create vertex buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(currGraphicsCard.logicalDevice, vertexBuffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        if (vkAllocateMemory(currGraphicsCard.logicalDevice, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate vertex buffer memory!");
-        }
-
-        vkBindBufferMemory(currGraphicsCard.logicalDevice, vertexBuffer, vertexBufferMemory, 0);
-
-        void* data;
-        vkMapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-        memcpy(data, vertexList.data(), (size_t)bufferInfo.size);
-        vkUnmapMemory(currGraphicsCard.logicalDevice, vertexBufferMemory);
-    }
 
     void createIndexBufferFromList(std::vector<Indices::indicesType> const& indexList, VkBuffer& myIndexBuffer, VkDeviceMemory& myIndexBufferMemory)
     {
@@ -1131,7 +1161,6 @@ namespace VulkanProject
         vkDestroyBuffer(currGraphicsCard.logicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, stagingBufferMemory, nullptr);
     }
-
 
     void createBuffersFromModel(Model& currModel)
     {
@@ -2282,6 +2311,7 @@ namespace VulkanProject
         MeshPushConstants constants;
         constants.render_matrix = mesh_matrix;
         constants.light_pos = glm::vec4(lightPos, 0.0f);
+        constants.camera_pos = glm::vec4(camPos, 0.0f);
 
         //upload the matrix to the GPU via push constants
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);

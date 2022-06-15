@@ -40,6 +40,15 @@ namespace VulkanProject
     };
 
 
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+
+    VkBuffer vertexBuffer2;
+    VkDeviceMemory vertexBufferMemory2;
+
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+
     VkCommandPool commandPool;
 
     std::vector<VkCommandBuffer> commandBuffers;

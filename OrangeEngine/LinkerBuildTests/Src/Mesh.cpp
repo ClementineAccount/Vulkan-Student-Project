@@ -39,6 +39,12 @@ namespace VulkanProject
 				mesh.meshVertices.normals.emplace_back(addMesh.mNormals[i].x, addMesh.mNormals[i].y, addMesh.mNormals[i].z);
 			}
 
+			if (addMesh.HasTangentsAndBitangents())
+			{
+				mesh.meshVertices.tangent.emplace_back(addMesh.mTangents[i].x, addMesh.mTangents[i].y, addMesh.mTangents[i].z);
+				mesh.meshVertices.biTangent.emplace_back(addMesh.mBitangents[i].x, addMesh.mBitangents[i].y, addMesh.mBitangents[i].z);
+			}
+
 			if (addMesh.HasVertexColors(0))
 			{
 				//Only add the first color set
