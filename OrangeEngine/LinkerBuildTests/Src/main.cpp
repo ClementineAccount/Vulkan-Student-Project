@@ -2129,7 +2129,7 @@ namespace VulkanProject
         glm::mat4 model;
         glm::mat4 projection;
 
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
@@ -2290,7 +2290,7 @@ namespace VulkanProject
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        static glm::vec3 camPos = { 3.f, 3.f, 3.f };
+        static glm::vec3 camPos = { 10.f, 10.f, 10.f };
         glm::mat4 view = glm::mat4(1.f);
 
         glm::mat4 modelMat;
@@ -2298,9 +2298,13 @@ namespace VulkanProject
 
         modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
         modelMat = glm::rotate(modelMat, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        modelMat = glm::scale(modelMat, glm::vec3(0.4f, 0.4f, 0.4f));
+        modelMat = glm::scale(modelMat, glm::vec3(1.0f, 1.0f, 1.0f));
 
-        lightPos = { 0.0f, 1.0f, 0.0f };
+
+        static float posY = 0.0f;
+        static float posX = 0.0f;
+        posX += time * 0.001f;
+        lightPos = { posX, 3.0f, 0.0f };
 
         view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);

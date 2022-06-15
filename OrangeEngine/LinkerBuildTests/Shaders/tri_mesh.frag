@@ -11,6 +11,8 @@ layout(location = 2) in vec3 TangentLightPos;
 layout(location = 3) in vec3 TangentViewPos;
 layout(location = 4) in vec3 TangentFragPos;
 layout(location = 5) in vec3 fragPos;
+layout(location = 6) in vec3 lightPos;
+layout(location = 7) in vec3 cameraPos;
 
 //https://learnopengl.com/Advanced-Lighting/Normal-Mapping
 
