@@ -713,6 +713,7 @@ namespace VulkanProject
     struct MeshPushConstants {
         glm::vec4 light_pos;
         glm::vec4 camera_pos;
+        glm::mat4 model_matrix;
         glm::mat4 render_matrix;
     };
 
@@ -2310,6 +2311,7 @@ namespace VulkanProject
 
         MeshPushConstants constants;
         constants.render_matrix = mesh_matrix;
+        constants.model_matrix = modelMat;
         constants.light_pos = glm::vec4(lightPos, 0.0f);
         constants.camera_pos = glm::vec4(camPos, 0.0f);
 
