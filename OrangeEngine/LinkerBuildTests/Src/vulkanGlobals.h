@@ -60,6 +60,8 @@ namespace VulkanProject
 
     VkPipelineLayout _meshPipelineLayout;
 
+    glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
+
     std::unordered_map<std::string, Texture> textureMap;
 
     namespace TextureNames

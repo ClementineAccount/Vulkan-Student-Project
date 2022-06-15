@@ -16,7 +16,10 @@
 xcopy "$(ProjectDir)Shaders" "$(TargetDir)Shaders" /e /y /i /r</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>call "$(ProjectDir)Shaders/compile_fragment_shader.bat"</Command>
+      <Command>call "$(ProjectDir)Shaders/compile_fragment_shader.bat"
+call "$(ProjectDir)Shaders/compile_vertex_shader.bat"
+xcopy "$(ProjectDir)Models" "$(TargetDir)Models" /e /y /i /r &lt;NUL:
+xcopy "$(ProjectDir)Shaders" "$(TargetDir)Shaders" /e /y /i /r &lt;NUL:</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />

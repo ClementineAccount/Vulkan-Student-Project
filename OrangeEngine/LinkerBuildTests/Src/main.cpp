@@ -103,6 +103,9 @@ namespace VulkanProject
         glm::vec3 color;
         glm::vec2 texCoord;
 
+        glm::vec3 normal;
+
+
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
             bindingDescription.binding = 0;
@@ -116,8 +119,10 @@ namespace VulkanProject
         static const VkFormat vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
         static const VkFormat colorFormat = VK_FORMAT_R32G32B32_SFLOAT;
 
-        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+        static const VkFormat normalFormat = VK_FORMAT_R32G32B32_SFLOAT;
+
+        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
 
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
@@ -133,6 +138,11 @@ namespace VulkanProject
             attributeDescriptions[2].location = 2;
             attributeDescriptions[2].format = textureFormat;
             attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+            attributeDescriptions[3].binding = 0;
+            attributeDescriptions[3].location = 3;
+            attributeDescriptions[3].format = normalFormat;
+            attributeDescriptions[3].offset = offsetof(Vertex, normal);
 
             return attributeDescriptions;
         }
@@ -526,7 +536,7 @@ namespace VulkanProject
     std::vector<Vertex> VerticesToBuffer(Vertices const& vertices)
     {
         static const glm::vec3 defaultColor = { 1.0f, 0.0f, 0.0f };
-
+        static const glm::vec3 defaultNormal = { 0.0f, 0.0f, 0.0f };
         static const glm::vec2 defaultTexCord = { 0.0f, 0.0f };
         
         std::vector<Vertex> vertexList;
@@ -554,6 +564,15 @@ namespace VulkanProject
                 vertexList[i].texCoord = defaultTexCord;
             }
 
+            if (i < vertices.normals.size())
+            {
+                vertexList[i].normal = vertices.normals[i];
+            }
+            else
+            {
+                vertexList[i].normal = defaultNormal;
+            }
+
 
         }
 
@@ -570,7 +589,7 @@ namespace VulkanProject
     };
 
     struct MeshPushConstants {
-        glm::vec4 data;
+        glm::vec4 light_pos;
         glm::mat4 render_matrix;
     };
 
@@ -2251,6 +2270,7 @@ namespace VulkanProject
         modelMat = glm::rotate(modelMat, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         modelMat = glm::scale(modelMat, glm::vec3(0.4f, 0.4f, 0.4f));
 
+        lightPos = { 0.0f, 1.0f, 0.0f };
 
         view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
@@ -2261,6 +2281,7 @@ namespace VulkanProject
 
         MeshPushConstants constants;
         constants.render_matrix = mesh_matrix;
+        constants.light_pos = glm::vec4(lightPos, 0.0f);
 
         //upload the matrix to the GPU via push constants
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);

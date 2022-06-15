@@ -34,6 +34,11 @@ namespace VulkanProject
 				mesh.meshVertices.textureCords.emplace_back(glm::vec2(addMesh.mTextureCoords[0][i].x, addMesh.mTextureCoords[0][i].y));
 			}
 
+			if (addMesh.HasNormals())
+			{
+				mesh.meshVertices.normals.emplace_back(addMesh.mNormals[i].x, addMesh.mNormals[i].y, addMesh.mNormals[i].z);
+			}
+
 			if (addMesh.HasVertexColors(0))
 			{
 				//Only add the first color set
