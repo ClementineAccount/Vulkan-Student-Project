@@ -72,10 +72,14 @@ namespace VulkanProject
     glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
     std::unordered_map<std::string, Texture> textureMap;
+    
 
+    //tbh I don't know why I don't use an enum class instead as on principle thats much faster
     namespace TextureNames
     {
         const char carBase[] = "carBase";
         const char carNormal[] = "carNormal";
+        const char carRough[] = "carRough";
+        const char carAO[] = "carAO";
     }
 }

@@ -403,6 +403,14 @@ namespace VulkanProject
         {
             textureFormat = VK_FORMAT_BC1_RGB_UNORM_BLOCK;
         }
+        else if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::R8G8B8A8_UNorm)
+        {
+            textureFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        }
+        else if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::BC1_UNorm)
+        {
+            textureFormat = VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+        }
 
 
         VkBuffer stagingBuffer;
@@ -1090,7 +1098,7 @@ namespace VulkanProject
 
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 2;
+        samplerLayoutBinding.descriptorCount = 4; //To Do: Make a way to have this update without having to hardcode
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -1244,15 +1252,20 @@ namespace VulkanProject
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureMap[TextureNames::carBase].textureImageView;
-            imageInfo.sampler = textureMap[TextureNames::carBase].textureSampler;
 
-            VkDescriptorImageInfo imageInfo2{};
-            imageInfo2.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo2.imageView = textureMap[TextureNames::carNormal].textureImageView;
-            imageInfo2.sampler = textureMap[TextureNames::carNormal].textureSampler;
+            auto makeImageInfo = [](std::string textureName)
+            {
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = textureMap[textureName].textureImageView;
+                imageInfo.sampler = textureMap[textureName].textureSampler;
+                return imageInfo;
+            };
+
+            VkDescriptorImageInfo roughImage = makeImageInfo(TextureNames::carRough);
+            VkDescriptorImageInfo baseImage = makeImageInfo(TextureNames::carBase);
+            VkDescriptorImageInfo normalImage = makeImageInfo(TextureNames::carNormal);
+            VkDescriptorImageInfo AOImage = makeImageInfo(TextureNames::carAO);
 
             std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
@@ -1264,16 +1277,18 @@ namespace VulkanProject
             descriptorWrites[0].descriptorCount = 1;
             descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-            std::array <VkDescriptorImageInfo, 2> imageInfoArray;
-            imageInfoArray[0] = imageInfo;
-            imageInfoArray[1] = imageInfo2;
+            std::array <VkDescriptorImageInfo, 4> imageInfoArray;
+            imageInfoArray[0] = baseImage;
+            imageInfoArray[1] = normalImage;
+            imageInfoArray[2] = roughImage;
+            imageInfoArray[3] = AOImage;
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = descriptorSets[i];
             descriptorWrites[1].dstBinding = 1;
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 2;
+            descriptorWrites[1].descriptorCount = imageInfoArray.size();
             descriptorWrites[1].pImageInfo = imageInfoArray.data();
 
 
@@ -1283,7 +1298,7 @@ namespace VulkanProject
             descriptorWrites[2].dstArrayElement = 0;
             descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[2].descriptorCount = 1;
-            descriptorWrites[2].pImageInfo = &imageInfo2;
+            descriptorWrites[2].pImageInfo = &baseImage;
 
             vkUpdateDescriptorSets(currGraphicsCard.logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -2290,7 +2305,7 @@ namespace VulkanProject
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        static glm::vec3 camPos = { 10.f, 10.f, 10.f };
+        static glm::vec3 camPos = { 8.f, 8.f, 8.f };
         glm::mat4 view = glm::mat4(1.f);
 
         glm::mat4 modelMat;
@@ -2417,15 +2432,24 @@ namespace VulkanProject
             std::string carBaseColorPath = textureFilePath + "_Base_Color.dds";
             std::string carNormalPath = textureFilePath + "_Normal_DirectX.dds";
             std::string carRoughnessPath = textureFilePath + "_Roughness.dds";
+            std::string carAOPath = textureFilePath + "_Mixed_AO.dds";
 
             std::unique_ptr<Texture> baseTexture = std::make_unique<Texture>();
             std::unique_ptr<Texture> normalTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> roughTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> AOTexture = std::make_unique<Texture>();
 
             makeTexture(carBaseColorPath, *baseTexture.get());
             textureMap.insert({ TextureNames::carBase, *baseTexture.get()});
 
             makeTexture(carNormalPath, *normalTexture);
             textureMap.insert({ TextureNames::carNormal, *normalTexture });
+
+            makeTexture(carRoughnessPath, *roughTexture);
+            textureMap.insert({ TextureNames::carRough, *roughTexture });
+
+            makeTexture(carAOPath, *AOTexture);
+            textureMap.insert({ TextureNames::carAO, *AOTexture });
         }
 
 
