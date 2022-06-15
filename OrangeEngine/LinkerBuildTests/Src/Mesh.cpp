@@ -59,15 +59,17 @@ namespace VulkanProject
 
 		meshVector.push_back(mesh);
 
-		aiMaterial* material = Scene.mMaterials[addMesh.mMaterialIndex];
-		ImportMaterialAndTextures(*material, Scene, aiTextureType_DIFFUSE);
-		ImportMaterialAndTextures(*material, Scene, aiTextureType_BASE_COLOR);
-		ImportMaterialAndTextures(*material, Scene, aiTextureType_SPECULAR);
-		ImportMaterialAndTextures(*material, Scene, aiTextureType_AMBIENT_OCCLUSION);
-		ImportMaterialAndTextures(*material, Scene, aiTextureType_NORMALS);
-		ImportMaterialAndTextures(*material, Scene, aiTextureType_DIFFUSE_ROUGHNESS);
+		for (size_t i = 0; i < Scene.mNumMaterials; ++i)
+		{
+			aiMaterial* material = Scene.mMaterials[i];
 
-
+			ImportMaterialAndTextures(*material, Scene, aiTextureType_DIFFUSE);
+			ImportMaterialAndTextures(*material, Scene, aiTextureType_BASE_COLOR);
+			ImportMaterialAndTextures(*material, Scene, aiTextureType_SPECULAR);
+			ImportMaterialAndTextures(*material, Scene, aiTextureType_AMBIENT_OCCLUSION);
+			ImportMaterialAndTextures(*material, Scene, aiTextureType_NORMALS);
+			ImportMaterialAndTextures(*material, Scene, aiTextureType_DIFFUSE_ROUGHNESS);
+		}
 	}
 
 	void Model::ProcessNode(const aiNode& Node, const aiScene& Scene) noexcept

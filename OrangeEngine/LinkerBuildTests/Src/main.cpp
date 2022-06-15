@@ -427,15 +427,20 @@ namespace VulkanProject
         int width = textureRef.ddsImage.GetWidth();
 
         tinyddsloader::DDSFile::DXGIFormat imageFormat = textureRef.ddsImage.GetFormat();
-        unsigned int bytesPerPixel = textureRef.ddsImage.GetBitsPerPixel(imageFormat) / CHAR_BIT;
+        unsigned int bitsPerPixel = textureRef.ddsImage.GetBitsPerPixel(imageFormat);
+        float bytesPerPixel = (float) bitsPerPixel / (float) CHAR_BIT;
 
-        VkDeviceSize imageSize = bytesPerPixel * height * width;
+        VkDeviceSize imageSize = height * width * bytesPerPixel;
 
         //To Do: case switch for all possible formats?
         VkFormat textureFormat = VK_FORMAT_BC3_UNORM_BLOCK;
         if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::BC3_UNorm)
         {
             textureFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+        }
+        else if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::BC1_UNorm_SRGB)
+        {
+            textureFormat = VK_FORMAT_BC1_RGB_UNORM_BLOCK;
         }
 
 
@@ -949,12 +954,19 @@ namespace VulkanProject
 
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.descriptorCount = 2;
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+        VkDescriptorSetLayoutBinding samplerLayoutBinding2{};
+        samplerLayoutBinding2.binding = 2;
+        samplerLayoutBinding2.descriptorCount = 1;
+        samplerLayoutBinding2.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding2.pImmutableSamplers = nullptr;
+        samplerLayoutBinding2.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, samplerLayoutBinding, samplerLayoutBinding2 };
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -1142,11 +1154,16 @@ namespace VulkanProject
     }
 
     void createDescriptorPool() {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1180,10 +1197,15 @@ namespace VulkanProject
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureVector[0].textureImageView;
-            imageInfo.sampler = textureVector[0].textureSampler;
+            imageInfo.imageView = currBaseTexture->textureImageView;
+            imageInfo.sampler = currBaseTexture->textureSampler;
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            VkDescriptorImageInfo imageInfo2{};
+            imageInfo2.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo2.imageView = currBaseTexture->textureImageView;
+            imageInfo2.sampler = currBaseTexture->textureSampler;
+
+            std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1193,13 +1215,26 @@ namespace VulkanProject
             descriptorWrites[0].descriptorCount = 1;
             descriptorWrites[0].pBufferInfo = &bufferInfo;
 
+            std::array <VkDescriptorImageInfo, 2> imageInfoArray;
+            imageInfoArray[0] = imageInfo;
+            imageInfoArray[1] = imageInfo;
+
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = descriptorSets[i];
             descriptorWrites[1].dstBinding = 1;
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
+            descriptorWrites[1].descriptorCount = 2;
+            descriptorWrites[1].pImageInfo = imageInfoArray.data();
+
+
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = descriptorSets[i];
+            descriptorWrites[2].dstBinding = 2;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pImageInfo = &imageInfo2;
 
             vkUpdateDescriptorSets(currGraphicsCard.logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -2315,7 +2350,19 @@ namespace VulkanProject
         std::string fourSphere = "Models/4Sphere.obj";
         std::string cuteAngel = "Models/lucy_princeton.obj";
 
-        currModel.loadModel(carFilePath);
+
+        //car 
+        {
+            currModel.loadModel(carFilePath);
+            std::string carBaseColorPath = "Models/vintage-car/_Base_Color.dds";
+
+            makeTexture(carBaseColorPath, baseColorCar);
+            textureMap.insert({ "car_base", baseColorCar });
+
+            currBaseTexture = &baseColorCar;
+        }
+
+
 
         //meshLoad.loadModel(skullFilePath);
 
@@ -2461,15 +2508,15 @@ namespace VulkanProject
     }
 
 
-    void createTextures()
-    {
-        std::string textureFolderPath = "Textures/gen/";
-        std::string boxDiffuseName = "SpecularMap.dds";
+    //void createTextures()
+    //{
+    //    std::string textureFolderPath = "Textures/gen/";
+    //    std::string boxDiffuseName = "SpecularMap.dds";
 
-        Texture textureDiffuse;
-        makeTexture(textureFolderPath + boxDiffuseName, textureDiffuse);
-        textureVector.push_back(textureDiffuse);
-    }
+    //    Texture textureDiffuse;
+    //    makeTexture(textureFolderPath + boxDiffuseName, textureDiffuse);
+    //    textureVector.push_back(textureDiffuse);
+    //}
 
 
     void cleanup()
@@ -2490,20 +2537,17 @@ namespace VulkanProject
         }
 
         vkDestroyDescriptorPool(currGraphicsCard.logicalDevice, descriptorPool, nullptr);
-
         vkDestroyDescriptorSetLayout(currGraphicsCard.logicalDevice, descriptorSetLayout, nullptr);
 
-
-        for (auto& currTexture : textureVector)
+        for (auto& currTexture : textureMap)
         {
-            vkDestroyImageView(currGraphicsCard.logicalDevice, currTexture.textureImageView, nullptr);
+            vkDestroyImageView(currGraphicsCard.logicalDevice, currTexture.second.textureImageView, nullptr);
 
-            vkDestroyImage(currGraphicsCard.logicalDevice, currTexture.textureImage, nullptr);
-            vkFreeMemory(currGraphicsCard.logicalDevice, currTexture.textureImageMemory, nullptr);
-
-            vkDestroySampler(currGraphicsCard.logicalDevice, currTexture.textureSampler, nullptr);
-
+            vkDestroyImage(currGraphicsCard.logicalDevice, currTexture.second.textureImage, nullptr);
+            vkFreeMemory(currGraphicsCard.logicalDevice, currTexture.second.textureImageMemory, nullptr);
+            vkDestroySampler(currGraphicsCard.logicalDevice, currTexture.second.textureSampler, nullptr);
         }
+
 
         for (auto& mesh : currModel.meshVector)
         {
@@ -2620,7 +2664,7 @@ int main()
     //Loading meshes using assimp
     loadObjects();
 
-    createTextures();
+    //createTextures();
 
 
 #ifdef  DEFAULT_CUBE

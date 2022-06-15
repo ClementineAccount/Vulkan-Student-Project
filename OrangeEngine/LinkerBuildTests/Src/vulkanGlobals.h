@@ -61,4 +61,9 @@ namespace VulkanProject
     VkPipelineLayout _meshPipelineLayout;
 
     std::unordered_map<std::string, Texture> textureMap;
+
+    Texture baseColorCar;
+
+    Texture* currBaseTexture;
+    Texture* currSpecularTexture;
 }
