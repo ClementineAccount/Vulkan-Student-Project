@@ -19,6 +19,7 @@ layout(location = 4) in vec3 TangentFragPos;
 layout(location = 5) in vec3 fragPos;
 layout(location = 6) in vec3 lightPos;
 layout(location = 7) in vec3 cameraPos;
+layout(location = 8) in vec3 lightColor;
 
 //https://learnopengl.com/Advanced-Lighting/Normal-Mapping
 
@@ -98,7 +99,7 @@ void main() {
     vec3 H = normalize(V + L);
     float distance = length(lightPos - fragPos);
     float attenuation = 1.0 / (distance * distance);
-    vec3 radiance = lightPos * attenuation;
+    vec3 radiance = lightColor * attenuation;
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(N, H, roughness);   

@@ -80,13 +80,24 @@ namespace VulkanProject
         glm::vec3 target;
     };
 
+    float cameraSpeed = 0.01f;
     Camera camera;
 
     glm::vec3 defaultLightPos = { 0.3f, 3.2f, 0.0f };
+    glm::vec3 defaultLightColor = { 1.0f, 1.0f, 1.0f };
+
+
+    struct Light
+    {
+        glm::vec3 pos;
+        glm::vec3 color;
+    };
+
+    Light pointLight;
 
 
     float deltaTime;
-    float cameraSpeed = 0.1f;
+
 
     std::unordered_map<std::string, Texture> textureMap;
     

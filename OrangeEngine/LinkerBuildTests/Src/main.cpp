@@ -723,6 +723,7 @@ namespace VulkanProject
 
     struct MeshPushConstants {
         glm::vec4 light_pos;
+        glm::vec4 light_color;
         glm::vec4 camera_pos;
         glm::mat4 model_matrix;
         glm::mat4 render_matrix;
@@ -2347,7 +2348,24 @@ namespace VulkanProject
         static int DKeyCode = 0x44;
         static int SKeyCode = 0x53;
         static int WKeyCode = 0x57;
+        static int QKeyCode = 0x51;
+        static int EKeyCode = 0x45;
+
+
         //static int leftKeyCode = VK_LEFT;
+
+
+        if (getKeyDown(QKeyCode))
+        {
+            camera.pos.x += cameraSpeed * deltaTime;
+            camera.target.x += cameraSpeed * deltaTime;
+        }
+
+        if (getKeyDown(EKeyCode))
+        {
+            camera.pos.x -= cameraSpeed * deltaTime;
+            camera.target.x -= cameraSpeed * deltaTime;
+        }
 
 
         if (getKeyDown(AKeyCode) || getKeyDown(VK_LEFT))
@@ -2373,9 +2391,34 @@ namespace VulkanProject
             camera.target.y += cameraSpeed * deltaTime;
         }
 
+
+
         if (getKeyDown(VK_SPACE))
         {
-            lightPos = camera.pos;
+            pointLight.pos = camera.target;
+        }
+
+
+        //testing light colors
+
+        pointLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
+
+        //red (r key)
+        if (getKeyDown(0x52))
+        {
+            pointLight.color = glm::vec3(1.0f, 0.0f, 0.0f);
+        }
+
+        //green (g key)
+        if (getKeyDown(0x47))
+        {
+            pointLight.color = glm::vec3(0.0f, 1.0f, 0.0f);
+        }
+
+        //blue (b key)
+        if (getKeyDown(0x42))
+        {
+            pointLight.color = glm::vec3(0.0f, 0.0f, 1.0f);
         }
 
 
@@ -2391,8 +2434,9 @@ namespace VulkanProject
         MeshPushConstants constants;
         constants.render_matrix = mesh_matrix;
         constants.model_matrix = modelMat;
-        constants.light_pos = glm::vec4(lightPos, 0.0f);
+        constants.light_pos = glm::vec4(pointLight.pos, 0.0f);
         constants.camera_pos = glm::vec4(camera.pos, 0.0f);
+        constants.light_color = glm::vec4(pointLight.color, 0.0f);
 
         //upload the matrix to the GPU via push constants
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
@@ -2807,7 +2851,9 @@ int main()
 
     camera.pos = defaultCameraPos;
     camera.target = defaultCameraTarget;
-    lightPos = defaultLightPos;
+
+    pointLight.pos = defaultLightPos;
+    pointLight.color = defaultLightColor;
 
     //if (isDebugCallbackOutput)
     //{

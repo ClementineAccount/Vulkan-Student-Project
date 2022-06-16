@@ -4,6 +4,7 @@
 layout( push_constant ) uniform constants
 {
 	vec4 light_pos;
+    vec4 light_color;
     vec4 camera_pos;
     mat4 model_matrix;
 	mat4 render_matrix;
@@ -26,11 +27,14 @@ layout(location = 4) out vec3 TangentFragPos;
 layout(location = 5) out vec3 fragPos;
 layout(location = 6) out vec3 lightPos;
 layout(location = 7) out vec3 cameraPos;
+layout(location = 8) out vec3 lightColor;
+
 
 void main() {
 
     cameraPos = vec3(PushConstants.camera_pos.x, PushConstants.camera_pos.y, PushConstants.camera_pos.z);
     lightPos = vec3(PushConstants.light_pos.x, PushConstants.light_pos.y, PushConstants.light_pos.z);
+    lightColor = vec3(PushConstants.light_color.x,  PushConstants.light_color.y, PushConstants.light_color.z);
 
     
     fragPos = vec3(PushConstants.model_matrix * vec4(inPosition, 1.0)); 
