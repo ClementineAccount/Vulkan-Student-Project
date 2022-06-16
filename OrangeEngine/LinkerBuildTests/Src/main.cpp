@@ -54,6 +54,9 @@
 //#define DEFAULT_CUBE
 
 
+
+constexpr bool isSkullModel = true;
+
 constexpr bool isTesting = true;
 constexpr bool isDebugCallbackOutput = false;
 
@@ -1266,11 +1269,32 @@ namespace VulkanProject
                 return imageInfo;
             };
 
-            VkDescriptorImageInfo roughImage = makeImageInfo(TextureNames::carRough);
-            VkDescriptorImageInfo baseImage = makeImageInfo(TextureNames::carBase);
-            VkDescriptorImageInfo normalImage = makeImageInfo(TextureNames::carNormal);
-            VkDescriptorImageInfo AOImage = makeImageInfo(TextureNames::carAO);
-            VkDescriptorImageInfo metalImage = makeImageInfo(TextureNames::carMetal);
+
+            VkDescriptorImageInfo roughImage;
+            VkDescriptorImageInfo baseImage;
+            VkDescriptorImageInfo normalImage;
+            VkDescriptorImageInfo AOImage;
+            VkDescriptorImageInfo metalImage;
+
+
+            if (isSkullModel)
+            {
+                roughImage = makeImageInfo(TextureNames::skullRough);
+                baseImage = makeImageInfo(TextureNames::skullBase);
+                normalImage = makeImageInfo(TextureNames::skullNormal);
+                AOImage = makeImageInfo(TextureNames::skullAO);
+                metalImage = makeImageInfo(TextureNames::skullMetal);
+            }
+            else
+            {
+                roughImage = makeImageInfo(TextureNames::carRough);
+                baseImage = makeImageInfo(TextureNames::carBase);
+                normalImage = makeImageInfo(TextureNames::carNormal);
+                AOImage = makeImageInfo(TextureNames::carAO);
+                metalImage = makeImageInfo(TextureNames::carMetal);
+            }
+
+
 
             std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
@@ -2321,9 +2345,9 @@ namespace VulkanProject
         glm::mat4 modelMat;
         glm::mat4 projection;
 
-        modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
         modelMat = glm::rotate(modelMat, deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        modelMat = glm::scale(modelMat, glm::vec3(1.0f, 1.0f, 1.0f));
+        modelMat = glm::scale(modelMat, glm::vec3(modelScale, modelScale, modelScale));
 
 
 
@@ -2537,6 +2561,42 @@ namespace VulkanProject
 
 
         //car 
+
+        if (isSkullModel)
+        {
+            currModel.loadModel(skullFilePath);
+
+            std::string textureFilePath = "Models/demon-skull/textures/";
+
+            std::string skullBaseColorPath = textureFilePath + "TD_Checker_Base_Color.dds";
+            std::string skullNormalPath = textureFilePath + "TD_Checker_Normal_OpenGL.dds";
+            std::string skullRoughnessPath = textureFilePath + "TD_Checker_Roughness.dds";
+            std::string skullAOPath = textureFilePath + "TD_Checker_Mixed_AO.dds";
+            std::string skullMetalPath = textureFilePath + "_Metallic.dds";
+
+
+            std::unique_ptr<Texture> baseTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> normalTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> roughTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> AOTexture = std::make_unique<Texture>();
+            std::unique_ptr<Texture> metallicTexture = std::make_unique<Texture>();
+
+            makeTexture(skullBaseColorPath, *baseTexture.get());
+            textureMap.insert({ TextureNames::skullBase, *baseTexture.get() });
+
+            makeTexture(skullNormalPath, *normalTexture);
+            textureMap.insert({ TextureNames::skullNormal, *normalTexture });
+
+            makeTexture(skullRoughnessPath, *roughTexture);
+            textureMap.insert({ TextureNames::skullRough, *roughTexture });
+
+            makeTexture(skullAOPath, *AOTexture);
+            textureMap.insert({ TextureNames::skullAO, *AOTexture });
+
+            makeTexture(skullMetalPath, *metallicTexture);
+            textureMap.insert({ TextureNames::skullMetal, *metallicTexture });
+        }
+        else //car model
         {
             currModel.loadModel(carFilePath);
 
@@ -2570,7 +2630,6 @@ namespace VulkanProject
             makeTexture(carMetalPath, *metallicTexture);
             textureMap.insert({ TextureNames::carMetal, *metallicTexture });
         }
-
 
 
         //meshLoad.loadModel(skullFilePath);

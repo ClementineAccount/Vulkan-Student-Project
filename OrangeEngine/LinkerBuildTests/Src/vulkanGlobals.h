@@ -71,7 +71,7 @@ namespace VulkanProject
 
     glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
-    glm::vec3 defaultCameraPos(6.0f, 6.0f, 6.0f);
+    glm::vec3 defaultCameraPos(3.0f, 3.0f, 3.0f);
     glm::vec3 defaultCameraTarget(0.0f, 0.0f, 0.0f);
 
     struct Camera
@@ -80,6 +80,8 @@ namespace VulkanProject
         glm::vec3 target;
     };
 
+
+    float modelScale = 0.01f;
     float cameraSpeed = 0.01f;
     Camera camera;
 
@@ -110,5 +112,12 @@ namespace VulkanProject
         const char carRough[] = "carRough";
         const char carAO[] = "carAO";
         const char carMetal[] = "carMetal";
+
+        const char skullBase[] = "skullBase";
+        const char skullNormal[] = "skullNormal";
+        const char skullRough[] = "skullRough";
+        const char skullAO[] = "skullAO";
+        const char skullMetal[] = "skullMetal";
+
     }
 }
