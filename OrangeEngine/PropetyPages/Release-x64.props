@@ -5,11 +5,22 @@
   <PropertyGroup />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)\Dependencies\assimp\include;$(SolutionDir)\Dependencies\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)\Dependencies\assimp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)Models" "$(TargetDir)Models" /e /y /i /r
+xcopy "$(ProjectDir)Shaders" "$(TargetDir)Shaders" /e /y /i /r</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>call "$(ProjectDir)Shaders/compile_fragment_shader.bat"
+call "$(ProjectDir)Shaders/compile_vertex_shader.bat"
+xcopy "$(ProjectDir)Models" "$(TargetDir)Models" /e /y /i /r &lt;NUL:
+xcopy "$(ProjectDir)Shaders" "$(TargetDir)Shaders" /e /y /i /r &lt;NUL:</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>

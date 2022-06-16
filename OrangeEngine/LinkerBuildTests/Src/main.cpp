@@ -35,6 +35,9 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
+
 #include "tinyddsloader.h"
 
 #include <iostream>
@@ -1184,11 +1187,11 @@ namespace VulkanProject
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
         ubo.model = glm::translate(glm::mat4(1.0f), translate);
-        ubo.model = glm::rotate(ubo.model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.model = glm::rotate(ubo.model, deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
@@ -2138,23 +2141,22 @@ namespace VulkanProject
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        static glm::vec3 camPos = { 3.f, 3.f, 3.f };
         glm::mat4 view = glm::mat4(1.f);
 
         glm::mat4 model;
         glm::mat4 projection;
 
         model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::rotate(model, deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
         //camPos.x += time * 0.01f;
         //camPos.y += time * 0.01f;
         //camPos.z += time * 0.01f;
 
-        view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        view = glm::lookAt(camera.pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
         projection[1][1] *= -1;
 
@@ -2312,26 +2314,75 @@ namespace VulkanProject
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-        static glm::vec3 camPos = { 8.f, 8.f, 8.f };
+        deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
         glm::mat4 view = glm::mat4(1.f);
 
         glm::mat4 modelMat;
         glm::mat4 projection;
 
         modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        modelMat = glm::rotate(modelMat, time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelMat = glm::rotate(modelMat, deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         modelMat = glm::scale(modelMat, glm::vec3(1.0f, 1.0f, 1.0f));
 
 
-        static float posY = 0.0f;
-        static float posX = 0.3f;
-        //posX += time * 0.001f;
-        lightPos = { posX, 3.2f, 0.0f };
 
-        view = glm::lookAt(camPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
+
+
+        auto getKeyDown = [](int virtKey)
+        {
+            return GetKeyState(virtKey) < 0;
+        };
+
+        auto getKeyToggle = [](int virtKey)
+        {
+            return GetKeyState(virtKey & 1) != 0;
+        };
+
+
+
+        //very simple wasd camera controls
+
+        //A key code 
+        static int AKeyCode = 0x41;
+        static int DKeyCode = 0x44;
+        static int SKeyCode = 0x53;
+        static int WKeyCode = 0x57;
+        //static int leftKeyCode = VK_LEFT;
+
+
+        if (getKeyDown(AKeyCode) || getKeyDown(VK_LEFT))
+        {
+            camera.pos.z += cameraSpeed * deltaTime;
+            camera.target.z += cameraSpeed * deltaTime;
+        }
+        if (getKeyDown(DKeyCode) || getKeyDown(VK_RIGHT))
+        {
+            camera.pos.z -= cameraSpeed * deltaTime;
+            camera.target.z -= cameraSpeed * deltaTime;
+        }
+
+        if (getKeyDown(SKeyCode) || getKeyDown(VK_DOWN))
+        {
+            camera.pos.y -= cameraSpeed * deltaTime;
+            camera.target.y -= cameraSpeed * deltaTime;
+        }
+
+        if (getKeyDown(WKeyCode) || getKeyDown(VK_UP))
+        {
+            camera.pos.y += cameraSpeed * deltaTime;
+            camera.target.y += cameraSpeed * deltaTime;
+        }
+
+        if (getKeyDown(VK_SPACE))
+        {
+            lightPos = camera.pos;
+        }
+
+
+
+
+        view = glm::lookAt(camera.pos, camera.target, glm::vec3(0.0f, 1.0f, 0.0f));
+        projection = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
         projection[1][1] *= -1;
 
         //calculate final mesh matrix
@@ -2341,7 +2392,7 @@ namespace VulkanProject
         constants.render_matrix = mesh_matrix;
         constants.model_matrix = modelMat;
         constants.light_pos = glm::vec4(lightPos, 0.0f);
-        constants.camera_pos = glm::vec4(camPos, 0.0f);
+        constants.camera_pos = glm::vec4(camera.pos, 0.0f);
 
         //upload the matrix to the GPU via push constants
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
@@ -2754,6 +2805,9 @@ int main()
     //setupDebugMessenger();
     VulkanProject::WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWNORMAL);
 
+    camera.pos = defaultCameraPos;
+    camera.target = defaultCameraTarget;
+    lightPos = defaultLightPos;
 
     //if (isDebugCallbackOutput)
     //{

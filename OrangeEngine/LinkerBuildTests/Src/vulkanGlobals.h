@@ -71,6 +71,23 @@ namespace VulkanProject
 
     glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
+    glm::vec3 defaultCameraPos(6.0f, 6.0f, 6.0f);
+    glm::vec3 defaultCameraTarget(0.0f, 0.0f, 0.0f);
+
+    struct Camera
+    {
+        glm::vec3 pos;
+        glm::vec3 target;
+    };
+
+    Camera camera;
+
+    glm::vec3 defaultLightPos = { 0.3f, 3.2f, 0.0f };
+
+
+    float deltaTime;
+    float cameraSpeed = 0.1f;
+
     std::unordered_map<std::string, Texture> textureMap;
     
 
