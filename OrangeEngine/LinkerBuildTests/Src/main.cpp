@@ -87,8 +87,8 @@ namespace VulkanProject
     // Stored instance handle for use in Win32 API calls such as FindResource
     HINSTANCE hInst;
 
-    constexpr int windowWidth = 1024;
-    constexpr int windowHeight = 768;
+    int windowWidth = 1024;
+    int windowHeight = 768;
 
     uint32_t currentFrame = 0;
 
@@ -2201,6 +2201,13 @@ namespace VulkanProject
 
     void recreateSwapChain() {
 
+        RECT rect;
+        if (GetWindowRect(currWinMainData.hWnd, &rect))
+        {
+            windowWidth = rect.right - rect.left;
+            windowHeight = rect.bottom - rect.top;
+        }
+
         vkDeviceWaitIdle(currGraphicsCard.logicalDevice);
 
         cleanupSwapChain();
@@ -2403,7 +2410,16 @@ namespace VulkanProject
 
         presentInfo.pImageIndices = &imageIndex;
 
-        vkQueuePresentKHR(graphicsQueue, &presentInfo);
+        //vkQueuePresentKHR(graphicsQueue, &presentInfo);
+
+        VkResult result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            recreateSwapChain();
+        }
+        else if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to present swap chain image!");
+        }
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
@@ -2615,6 +2631,7 @@ namespace VulkanProject
     //    makeTexture(textureFolderPath + boxDiffuseName, textureDiffuse);
     //    textureVector.push_back(textureDiffuse);
     //}
+
 
 
     void cleanup()
