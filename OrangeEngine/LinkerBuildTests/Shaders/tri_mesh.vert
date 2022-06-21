@@ -5,6 +5,7 @@ layout( push_constant ) uniform constants
 {
 	vec4 light_pos;
     vec4 light_color;
+    vec4 ambient_color;
     vec4 camera_pos;
     mat4 model_matrix;
 	mat4 render_matrix;
@@ -30,7 +31,8 @@ layout(location = 7) out vec3 tangentViewPos;
 layout(location = 8) out vec3 tangentLightPos;
 layout(location = 9) out vec3 tangentFragPos;
 layout (location = 10) out vec3 normal;
-layout (location = 11) out mat3 BTN;
+layout (location = 11) out vec3 ambientColor;
+layout (location = 12) out mat3 BTN;
 
 
 void main() {
@@ -38,6 +40,7 @@ void main() {
     cameraPos  = vec3(PushConstants.camera_pos.x, PushConstants.camera_pos.y, PushConstants.camera_pos.z);
     lightPos   = vec3(PushConstants.light_pos.x, PushConstants.light_pos.y, PushConstants.light_pos.z);
     lightColor = vec3(PushConstants.light_color.x,  PushConstants.light_color.y, PushConstants.light_color.z);
+    ambientColor = vec3(PushConstants.ambient_color.x, PushConstants.ambient_color.y, PushConstants.ambient_color.z);
 
     mat4 W2L = inverse(PushConstants.model_matrix);
     

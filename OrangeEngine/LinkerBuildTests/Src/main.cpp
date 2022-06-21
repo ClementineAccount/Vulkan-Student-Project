@@ -731,6 +731,7 @@ namespace VulkanProject
     struct MeshPushConstants {
         glm::vec4 light_pos;
         glm::vec4 light_color;
+        glm::vec4 ambient_color;
         glm::vec4 camera_pos;
         glm::mat4 model_matrix;
         glm::mat4 render_matrix;
@@ -2393,6 +2394,7 @@ namespace VulkanProject
         static int EKeyCode = 0x45;
         static int RKeyCode = 0x52;
         static int FKeyCode = 0x46;
+        static int GKeyCode = 0x47;
 
         //Reset
         if (getKeyDown(FKeyCode))
@@ -2402,7 +2404,7 @@ namespace VulkanProject
 
         }
 
-        if (getKeyDown(RKeyCode) || getKeyDown(VK_RBUTTON))
+        if (getKeyDown(GKeyCode) || getKeyDown(VK_RBUTTON))
         {
             //https://learnopengl.com/Getting-started/Camera
             RECT rect;
@@ -2509,19 +2511,19 @@ namespace VulkanProject
         //red (r key)
         if (getKeyDown(0x52))
         {
-            //pointLight.color = glm::vec3(1.0f, 0.0f, 0.0f);
+            pointLight.color = glm::vec3(0.7f, 0.0f, 0.0f);
         }
 
         //green (g key)
         if (getKeyDown(0x47))
         {
-            pointLight.color = glm::vec3(0.0f, 1.0f, 0.0f);
+            pointLight.color = glm::vec3(0.0f, 0.7f, 0.0f);
         }
 
         //blue (b key)
         if (getKeyDown(0x42))
         {
-            pointLight.color = glm::vec3(0.0f, 0.0f, 1.0f);
+            pointLight.color = glm::vec3(0.0f, 0.0f, 0.7f);
         }
 
 
@@ -2540,6 +2542,7 @@ namespace VulkanProject
         constants.light_pos = glm::vec4(pointLight.pos, 0.0f);
         constants.camera_pos = glm::vec4(camera.pos, 0.0f);
         constants.light_color = glm::vec4(pointLight.color, 0.0f);
+        constants.ambient_color = glm::vec4(pointLight.ambient_color, 0.0f);
 
         //upload the matrix to the GPU via push constants
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
@@ -3011,6 +3014,7 @@ int main()
 
     pointLight.pos = defaultLightPos;
     pointLight.color = defaultLightColor;
+    pointLight.ambient_color = glm::vec3(0.05f, 0.05f, 0.05f);
 
     //if (isDebugCallbackOutput)
     //{

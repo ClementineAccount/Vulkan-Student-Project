@@ -22,7 +22,8 @@ layout(location = 7) in vec3 tangentViewPos;
 layout(location = 8) in vec3 tangentLightPos;
 layout(location = 9) in vec3 tangentFragPos;
 layout (location = 10) in vec3 normal;
-layout (location = 11) in mat3 BTN;
+layout (location = 11) in vec3 ambientColor;
+layout (location = 12) in mat3 BTN;
 
 layout(location = 0) out vec4 outColor;
 
@@ -36,7 +37,7 @@ void main() {
 
     Normal = BTN * Normal;
 
-    vec3 ambientLightColor = vec3(0.05f, 0.05f, 0.05f);
+    vec3 ambientLightColor = ambientColor;
 
     // ambient
     float ambientStrength = texture(texSampler[3], fragTexCoord).r;
@@ -56,7 +57,10 @@ void main() {
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
     vec3 specular =  spec * texture(texSampler[2], fragTexCoord).rgb;  
-        
-    vec3 meshColor = (ambient + diffuse + specular);
-    outColor = vec4(meshColor, 1.0);
+
+    vec3 meshColorOne =  ambient;
+    vec3 meshColorTwo = lightColor * (diffuse + specular);
+    vec3 finalColor = meshColorOne + meshColorTwo;
+
+    outColor = vec4(finalColor, 1.0);
 }
