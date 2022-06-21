@@ -81,15 +81,27 @@ namespace VulkanProject
     {
         glm::vec3 pos;
         glm::vec3 target;
-        glm::vec3 cameraFront;
+        glm::vec3 front;
+        glm::vec3 right;
+        glm::vec3 up;
+
         glm::vec3 cameraUp;
+
+        float horizontalMouseOffset;
+        float verticalMouseOffset;
 
         float yaw = -90.0f;
         float pitch = 0.0f;
-        float lastX = windowWidth / 2.0f; //center of screen
-        float lastY = windowHeight / 2.0f;
+        int lastX = windowWidth / 2.0f; //center of screen
+        int lastY = windowHeight / 2.0f;
+
+        float offsetX = 0.0f;
+        float offsetY = 0.0f;
 
         float fov = 45.0f;
+
+        bool firstMouse = true;
+        float sens = 0.4f;
     };
 
 

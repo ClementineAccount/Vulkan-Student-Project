@@ -2392,60 +2392,98 @@ namespace VulkanProject
         static int QKeyCode = 0x51;
         static int EKeyCode = 0x45;
 
-
-        //static int leftKeyCode = VK_LEFT;
+        if (getKeyDown(QKeyCode))
         {
+            //https://learnopengl.com/Getting-started/Camera
+            RECT rect;
+            GetWindowRect(currWinMainData.hWnd, &rect);
+            ClipCursor(&rect);
+
             int x = 0;
             int y = 0;
-            POINT point{x, y};
+            POINT point{ x, y };
             GetCursorPos(&point);
             ScreenToClient(currWinMainData.hWnd, &point);
             x = point.x;
             y = point.y;
             y = windowHeight - y;
-            
-            x = x < 0.0f ? 0.0f : x;
-            x = x > windowWidth ? windowWidth : x;
 
-            y = y < 0.0f ? 0.0f : y;
-            y = y > windowHeight ? windowHeight : y;
+            if (camera.firstMouse)
+            {
+                camera.lastX = x;
+                camera.lastY = y;
+                camera.firstMouse = false;
+            }
 
-            std::cout << "(" << x << " , " << y << ")\n";
+            float xoffset = x - camera.lastX;
+            float yoffset = y - camera.lastY;
+
+            camera.lastX = x;
+            camera.lastY = y;
+
+            xoffset *= camera.sens;
+            yoffset *= camera.sens;
+
+            camera.yaw += xoffset;
+            camera.pitch += yoffset;
+
+            if (camera.pitch > 89.0f)
+                camera.pitch = 89.0f;
+            if (camera.pitch < -89.0f)
+                camera.pitch = -89.0f;
+
+
+            glm::vec3 front;
+            front.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+            front.y = sin(glm::radians(camera.pitch));
+            front.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+
+            camera.front = glm::normalize(front);
+            // also re-calculate the Right and Up vector
+            camera.right = glm::normalize(glm::cross(camera.front, glm::vec3(0.0f, 1.0f, 0.0f)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+            camera.up = glm::normalize(glm::cross(camera.right, camera.front));
+
+            camera.target = camera.pos + camera.front;
         }
-
-        if (getKeyDown(QKeyCode))
+        else
         {
-
+            camera.firstMouse = true;
         }
 
         if (getKeyDown(EKeyCode))
         {
-            camera.pos.x -= cameraSpeed * deltaTime;
-            camera.target.x -= cameraSpeed * deltaTime;
+
+
         }
 
 
         if (getKeyDown(AKeyCode) || getKeyDown(VK_LEFT))
         {
-            camera.pos.z += cameraSpeed * deltaTime;
-            camera.target.z += cameraSpeed * deltaTime;
+            //glm::vec3 moveVectorForward = camera.target - camera.pos;
+            //camera.pos -= glm::normalize(glm::cross(moveVectorForward, cameraUp)) * cameraSpeed;
+            //camera.target -= moveVector;
         }
         if (getKeyDown(DKeyCode) || getKeyDown(VK_RIGHT))
         {
-            camera.pos.z -= cameraSpeed * deltaTime;
-            camera.target.z -= cameraSpeed * deltaTime;
+            //glm::vec3 moveVector = glm::normalize(camera.target - camera.pos) * cameraSpeed * deltaTime;
+            //camera.pos -= moveVector;
+            //camera.target -= moveVector;
         }
 
         if (getKeyDown(SKeyCode) || getKeyDown(VK_DOWN))
         {
-            camera.pos.y -= cameraSpeed * deltaTime;
-            camera.target.y -= cameraSpeed * deltaTime;
+            //Move away from direction you are facing
+            glm::vec3 moveVector = glm::normalize(camera.target - camera.pos) * cameraSpeed * deltaTime;
+            camera.pos -= moveVector;
+            camera.target -= moveVector;
         }
 
         if (getKeyDown(WKeyCode) || getKeyDown(VK_UP))
         {
-            camera.pos.y += cameraSpeed * deltaTime;
-            camera.target.y += cameraSpeed * deltaTime;
+            //move direction ur facing in
+            glm::vec3 moveVector = glm::normalize(camera.target - camera.pos) * cameraSpeed * deltaTime;
+            camera.pos += moveVector;
+            camera.target += moveVector;
         }
 
 
