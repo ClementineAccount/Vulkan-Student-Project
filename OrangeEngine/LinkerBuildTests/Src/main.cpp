@@ -2402,7 +2402,7 @@ namespace VulkanProject
 
         }
 
-        if (getKeyDown(RKeyCode))
+        if (getKeyDown(RKeyCode) || getKeyDown(VK_RBUTTON))
         {
             //https://learnopengl.com/Getting-started/Camera
             RECT rect;
