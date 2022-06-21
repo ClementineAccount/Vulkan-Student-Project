@@ -2392,6 +2392,15 @@ namespace VulkanProject
         static int QKeyCode = 0x51;
         static int EKeyCode = 0x45;
         static int RKeyCode = 0x52;
+        static int FKeyCode = 0x46;
+
+        //Reset
+        if (getKeyDown(FKeyCode))
+        {
+            camera.pos = defaultCameraPos;
+            camera.target = defaultCameraTarget;
+
+        }
 
         if (getKeyDown(RKeyCode))
         {
@@ -2454,36 +2463,38 @@ namespace VulkanProject
         if (getKeyDown(EKeyCode))
         {
             camera.pos -= camera.up * cameraSpeed * deltaTime;
-
+            camera.target -= camera.up * cameraSpeed * deltaTime;
         }
 
-        if (getKeyDown(RKeyCode))
+        if (getKeyDown(QKeyCode))
         {
             camera.pos += camera.up * cameraSpeed * deltaTime;
+            camera.target += camera.up * cameraSpeed * deltaTime;
         }
 
 
         if (getKeyDown(AKeyCode) || getKeyDown(VK_LEFT))
         {
             camera.pos -= camera.right * cameraSpeed * deltaTime;
+            camera.target -= camera.right * cameraSpeed * deltaTime;
         }
         if (getKeyDown(DKeyCode) || getKeyDown(VK_RIGHT))
         {
             camera.pos += camera.right * cameraSpeed * deltaTime;
+            camera.target += camera.right * cameraSpeed * deltaTime;
         }
 
         if (getKeyDown(SKeyCode) || getKeyDown(VK_DOWN))
         {
             camera.pos -= camera.front * cameraSpeed * deltaTime;
-
+            camera.target -= camera.front * cameraSpeed * deltaTime;
         }
 
         if (getKeyDown(WKeyCode) || getKeyDown(VK_UP))
         {
             camera.pos += camera.front * cameraSpeed * deltaTime;
+            camera.target += camera.front * cameraSpeed * deltaTime;
         }
-
-
 
         if (getKeyDown(VK_SPACE))
         {
@@ -2498,7 +2509,7 @@ namespace VulkanProject
         //red (r key)
         if (getKeyDown(0x52))
         {
-            pointLight.color = glm::vec3(1.0f, 0.0f, 0.0f);
+            //pointLight.color = glm::vec3(1.0f, 0.0f, 0.0f);
         }
 
         //green (g key)
@@ -2516,8 +2527,8 @@ namespace VulkanProject
 
 
 
-        view = glm::lookAt(camera.pos, camera.pos + camera.front, glm::vec3(0.0f, 1.0f, 0.0f));
-        projection = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
+        view = glm::lookAt(camera.pos, camera.target, camera.up );
+        projection = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
         projection[1][1] *= -1;
 
         //calculate final mesh matrix
@@ -2992,6 +3003,11 @@ int main()
 
     camera.pos = defaultCameraPos;
     camera.target = defaultCameraTarget;
+
+    camera.pos = defaultCameraPos;
+    camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
+    camera.right = glm::vec3(1.0f, 0.0f, 0.0f);
+    camera.front = glm::vec3(0.0f, 0.0f, 1.0f);
 
     pointLight.pos = defaultLightPos;
     pointLight.color = defaultLightColor;
