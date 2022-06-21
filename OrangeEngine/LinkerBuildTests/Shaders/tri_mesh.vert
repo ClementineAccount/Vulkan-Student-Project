@@ -30,6 +30,7 @@ layout(location = 7) out vec3 tangentViewPos;
 layout(location = 8) out vec3 tangentLightPos;
 layout(location = 9) out vec3 tangentFragPos;
 layout (location = 10) out vec3 normal;
+layout (location = 11) out mat3 BTN;
 
 
 void main() {
@@ -45,6 +46,9 @@ void main() {
     fragTexCoord = inTexCoord;
 
     normal = inNormal;
+
+    BTN = mat3(inTangent, inBiTangent, inNormal);
+    localPos = inPosition;
 
     mat3 normalMatrix = transpose(inverse(mat3(PushConstants.model_matrix)));
     vec3 T = normalize(normalMatrix * inTangent);

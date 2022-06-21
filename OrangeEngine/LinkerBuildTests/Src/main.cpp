@@ -2421,7 +2421,7 @@ namespace VulkanProject
             if (camera.firstMouse)
             {
                 camera.lastX = x;
-                camera.lastY = y;
+                 camera.lastY = y;
                 camera.firstMouse = false;
             }
 
