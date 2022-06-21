@@ -26,6 +26,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -93,8 +94,7 @@ namespace VulkanProject
     // Stored instance handle for use in Win32 API calls such as FindResource
     HINSTANCE hInst;
 
-    int windowWidth = 1024;
-    int windowHeight = 768;
+
 
     uint32_t currentFrame = 0;
 
@@ -416,6 +416,10 @@ namespace VulkanProject
         else if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::BC1_UNorm)
         {
             textureFormat = VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+        }
+        else if (imageFormat == tinyddsloader::DDSFile::DXGIFormat::BC5_UNorm)
+        {
+            textureFormat = VK_FORMAT_BC5_UNORM_BLOCK;
         }
 
 
@@ -2224,13 +2228,24 @@ namespace VulkanProject
         }
 
         vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
+
+        vkDestroyImageView(currGraphicsCard.logicalDevice, depthImageView, nullptr);
+        vkDestroyImage(currGraphicsCard.logicalDevice, depthImage, nullptr);
+        vkFreeMemory(currGraphicsCard.logicalDevice, depthImageMemory, nullptr);
+
+        for (auto& mod : shaderModuleMap)
+            vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
     }
 
     void recreateSwapChain() {
 
         RECT rect;
-        if (GetWindowRect(currWinMainData.hWnd, &rect))
+        GetWindowRect(currWinMainData.hWnd, &rect);
+        windowWidth = rect.right - rect.left;
+        windowHeight = rect.bottom - rect.top;
+        while (windowWidth == 0 || windowHeight == 0)
         {
+            GetWindowRect(currWinMainData.hWnd, &rect);
             windowWidth = rect.right - rect.left;
             windowHeight = rect.bottom - rect.top;
         }
@@ -2243,6 +2258,8 @@ namespace VulkanProject
         createImageViews();
         setupRenderPass();
         setupGraphicsPipeline();
+
+        createDepthResources();
         setupFrameBuffers();
     }
 
@@ -2346,7 +2363,7 @@ namespace VulkanProject
         glm::mat4 projection;
 
         modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
-        modelMat = glm::rotate(modelMat, deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelMat = glm::rotate(modelMat, deltaTime * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         modelMat = glm::scale(modelMat, glm::vec3(modelScale, modelScale, modelScale));
 
 
@@ -2377,12 +2394,28 @@ namespace VulkanProject
 
 
         //static int leftKeyCode = VK_LEFT;
+        {
+            int x = 0;
+            int y = 0;
+            POINT point{x, y};
+            GetCursorPos(&point);
+            ScreenToClient(currWinMainData.hWnd, &point);
+            x = point.x;
+            y = point.y;
+            y = windowHeight - y;
+            
+            x = x < 0.0f ? 0.0f : x;
+            x = x > windowWidth ? windowWidth : x;
 
+            y = y < 0.0f ? 0.0f : y;
+            y = y > windowHeight ? windowHeight : y;
+
+            std::cout << "(" << x << " , " << y << ")\n";
+        }
 
         if (getKeyDown(QKeyCode))
         {
-            camera.pos.x += cameraSpeed * deltaTime;
-            camera.target.x += cameraSpeed * deltaTime;
+
         }
 
         if (getKeyDown(EKeyCode))
@@ -2419,7 +2452,7 @@ namespace VulkanProject
 
         if (getKeyDown(VK_SPACE))
         {
-            pointLight.pos = camera.target;
+            pointLight.pos = camera.pos;
         }
 
 
@@ -2486,10 +2519,15 @@ namespace VulkanProject
     void drawModel(Model const& model)
     {
         vkWaitForFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-        vkResetFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame]);
+
 
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(currGraphicsCard.logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(currGraphicsCard.logicalDevice, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapChain();
+        }
+
+        vkResetFences(currGraphicsCard.logicalDevice, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 
@@ -2513,9 +2551,18 @@ namespace VulkanProject
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+        result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapChain();
+        }
+
+
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
+
+
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2531,7 +2578,7 @@ namespace VulkanProject
 
         //vkQueuePresentKHR(graphicsQueue, &presentInfo);
 
-        VkResult result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
+        result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             recreateSwapChain();

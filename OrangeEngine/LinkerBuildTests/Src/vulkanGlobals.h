@@ -24,6 +24,9 @@
 
 namespace VulkanProject
 {
+    int windowWidth = 1024;
+    int windowHeight = 768;
+
     struct modelTransforms
     {
         glm::vec3 pos;
@@ -78,6 +81,15 @@ namespace VulkanProject
     {
         glm::vec3 pos;
         glm::vec3 target;
+        glm::vec3 cameraFront;
+        glm::vec3 cameraUp;
+
+        float yaw = -90.0f;
+        float pitch = 0.0f;
+        float lastX = windowWidth / 2.0f; //center of screen
+        float lastY = windowHeight / 2.0f;
+
+        float fov = 45.0f;
     };
 
 

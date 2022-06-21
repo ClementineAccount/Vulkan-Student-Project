@@ -21,14 +21,13 @@ layout(location = 5) in vec3 inBiTangent;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
-layout(location = 2) out vec3 fragPos;
-layout(location = 3) out vec3 lightPos;
-layout(location = 4) out vec3 cameraPos;
-layout(location = 5) out vec3 lightColor;
-layout(location = 6) out vec3 localPos;
-layout(location = 7) out vec3 tangentViewPos;
-layout(location = 8) out vec3 tangentLightPos;
-layout(location = 9) out vec3 tangentFragPos;
+layout(location = 2) out vec3 TangentLightPos;
+layout(location = 3) out vec3 TangentViewPos;
+layout(location = 4) out vec3 TangentFragPos;
+layout(location = 5) out vec3 fragPos;
+layout(location = 6) out vec3 lightPos;
+layout(location = 7) out vec3 cameraPos;
+layout(location = 8) out vec3 lightColor;
 
 
 void main() {
@@ -41,18 +40,13 @@ void main() {
     
     fragPos = vec3(PushConstants.model_matrix * vec4(inPosition, 1.0)); 
     fragColor = inColor;
-    fragTexCoord = inTexCoord;
+    fragTexCoord = inTexCoord;    
 
-    mat3 normalMatrix = transpose(inverse(mat3(PushConstants.model_matrix)));
-    vec3 T = normalize(normalMatrix * inTangent);
-    vec3 N = normalize(normalMatrix * inNormal);
-    T = normalize(T - dot(T, N) * N);
-    vec3 B = cross(N, T);
+    mat4 TBN = mat4(transpose(mat3(inTangent, inBiTangent, inNormal))) * W2L;    
+    TangentLightPos = (TBN * vec4(lightPos, 1.0)).xyz;
+    TangentViewPos  = (TBN * vec4(cameraPos, 1.0)).xyz;
+    TangentFragPos  = (TBN * vec4(fragPos, 1.0)).xyz;
 
-    mat3 TBN = transpose(mat3(T, B, N));    
-    tangentLightPos = TBN * PushConstants.light_pos.xyz;
-    tangentViewPos  = TBN * PushConstants.camera_pos.xyz;
-    tangentFragPos  = TBN * fragPos;
 
     gl_Position = PushConstants.render_matrix * vec4(inPosition, 1.0);
 }
