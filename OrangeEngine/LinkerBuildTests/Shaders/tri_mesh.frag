@@ -55,8 +55,9 @@ void main() {
     vec3 viewDir = normalize(cameraPos - fragPos);
     vec3 reflectDir = reflect(-lightDir, Normal);  
     vec3 halfwayDir = normalize(lightDir + viewDir);  
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
-    vec3 specular =  spec * texture(texSampler[2], fragTexCoord).rgb;  
+
+    float roughness = mix(texture(texSampler[2], fragTexCoord).r, 1, 128);
+    float specular  = pow(max(dot(viewDir, reflectDir), 0.0), roughness);
 
     vec3 meshColorOne =  ambient;
     vec3 meshColorTwo = lightColor * (diffuse + specular);

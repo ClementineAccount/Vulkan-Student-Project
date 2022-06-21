@@ -1,16 +1,18 @@
 /*****************************************************************//**
- * \file   LinkerBuildTest.cpp
+ * \file   main.cpp
  * \brief 
  *         This file was adapted from Microsoft's [documentation](https://docs.microsoft.com/en-us/windows/win32/learnwin32/windows-hello-world-sample) 
- *         on using the Win32 API and some vulkan tutorials
- *         for the purposes of testing linker configuration on Visual Studio on the machine
- *         when building.
- * 
- *         It is not designed to be organized and is only currently in use to test linking and
- *         understanding. It's informal and crude so please don't submit it in the final...
+ *         
+ *         This is my submission for CSD2150 (Real-Time Rendering) for Tomas Arces' class
+ *         Additional resources that were helpful for me:
+ *         1) https://github.com/LIONant-depot/xGPU (help for understanding assimp and the lighting shader)
+ *         2) https://vulkan-tutorial.com/ (for boilerplate, and learning how Vulkan work)
+ *         3) https://learnopengl.com/ (For lighting and understanding theory of normal map, roughness, specular)
+ *         4) Vulkan Programming Guide: The Official Guide to Learning Vulkan -  Graham Sellers
+ *         5) RenderDoc and its community for helping me with setting it up (https://renderdoc.org/)
  * 
  * \author Clementine Shamaney, clementine.s@digipen.edu
- * \date   May 2022
+ * \date   April -> June 2022
  *********************************************************************/
 
 // compile with: /D_UNICODE /DUNICODE /DWIN32 /D_WINDOWS /c
@@ -45,6 +47,8 @@
 
 #include "Mesh.h"
 #include "vulkanGlobals.h"
+
+#include "PushConstants.h"
 
 //Vulkan
 
@@ -89,7 +93,7 @@ namespace VulkanProject
     static TCHAR szWindowClass[] = _T("DesktopApp");
 
     // The string that appears in the application's title bar.
-    static TCHAR szTitle[] = _T("Vulkan Student Project : Clementine");
+    static TCHAR szTitle[] = _T("CSD 2150 Final Submission: Clementine Shamaney");
 
     // Stored instance handle for use in Win32 API calls such as FindResource
     HINSTANCE hInst;
@@ -206,7 +210,6 @@ namespace VulkanProject
     }
 
 
-
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
         VkCommandBuffer commandBuffer = beginCommand();
 
@@ -229,8 +232,6 @@ namespace VulkanProject
 
         endCommand(commandBuffer);
     }
-
-
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         VkBufferCreateInfo bufferInfo{};
@@ -290,9 +291,6 @@ namespace VulkanProject
 
         vkFreeCommandBuffers(currGraphicsCard.logicalDevice, commandPool, 1, &commandBuffer);
     }
-
-    
-
 
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
         VkImageCreateInfo imageInfo{};
@@ -372,8 +370,6 @@ namespace VulkanProject
             throw std::runtime_error("failed to create texture sampler!");
         }
     }
-
-
 
     void makeTexture(std::string const& filePath, Texture& textureRef)
     {
@@ -715,9 +711,6 @@ namespace VulkanProject
     };
     std::vector<Vertex> vertex_load_model;
     Mesh meshLoad;
-    
-
-
 
     const std::vector<Indices::indicesType> indices = {
         0, 1, 2, 0, 2, 3, //front
@@ -728,14 +721,6 @@ namespace VulkanProject
         20, 21, 22, 20, 22, 23 //left
     };
 
-    struct MeshPushConstants {
-        glm::vec4 light_pos;
-        glm::vec4 light_color;
-        glm::vec4 ambient_color;
-        glm::vec4 camera_pos;
-        glm::mat4 model_matrix;
-        glm::mat4 render_matrix;
-    };
 
 
 
@@ -1081,8 +1066,6 @@ namespace VulkanProject
             throw std::runtime_error("failed to begin recording command buffer!");
         }
     }
-
-
 
 
     void queryExtensions(uint32_t& extensionCountRef, std::vector<VkExtensionProperties>& extensionVectorRef, bool showNames = true)
@@ -1647,8 +1630,12 @@ namespace VulkanProject
     
     void setupGraphicsPipeline()
     {
-        createShader(vertShaderName);
-        createShader(fragShaderName);
+        if (shaderModuleMap.size() == 0)
+        {
+            createShader(vertShaderName);
+            createShader(fragShaderName);
+        }
+
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1743,7 +1730,6 @@ namespace VulkanProject
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
 
-
         //https://vkguide.dev/docs/chapter-3/push_constants/
 
         //setup push constants
@@ -1782,15 +1768,14 @@ namespace VulkanProject
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
-
     }
 
     void cleanupGraphicsPipeline()
     {
-        for (auto& mod : shaderModuleMap)
-        {
-            vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
-        }
+        //for (auto& mod : shaderModuleMap)
+        //{
+        //    vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
+        //}
     }
 
     void setupFrameBuffers()
@@ -2234,8 +2219,7 @@ namespace VulkanProject
         vkDestroyImage(currGraphicsCard.logicalDevice, depthImage, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, depthImageMemory, nullptr);
 
-        for (auto& mod : shaderModuleMap)
-            vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
+
     }
 
     void recreateSwapChain() {
@@ -2369,8 +2353,6 @@ namespace VulkanProject
 
 
 
-
-
         auto getKeyDown = [](int virtKey)
         {
             return GetKeyState(virtKey) < 0;
@@ -2400,8 +2382,28 @@ namespace VulkanProject
         if (getKeyDown(FKeyCode))
         {
             camera.pos = defaultCameraPos;
-            camera.target = defaultCameraTarget;
 
+            glm::vec3 front;
+            front.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+            front.y = sin(glm::radians(camera.pitch));
+            front.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+
+            camera.front = glm::normalize(front);
+            // also re-calculate the Right and Up vector
+            camera.right = glm::normalize(glm::cross(camera.front, glm::vec3(0.0f, 1.0f, 0.0f)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+            camera.up = glm::normalize(glm::cross(camera.right, camera.front));
+
+            camera.target = camera.pos + camera.front;
+        }
+
+        //Speed up camera if holding down left shift
+        if (getKeyDown(VK_LSHIFT))
+        {
+            cameraSpeed = 0.001f;
+        }
+        else
+        {
+            cameraSpeed = 0.0005f;
         }
 
         if (getKeyDown(GKeyCode) || getKeyDown(VK_RBUTTON))
@@ -2409,7 +2411,7 @@ namespace VulkanProject
             //https://learnopengl.com/Getting-started/Camera
             RECT rect;
             GetWindowRect(currWinMainData.hWnd, &rect);
-            ClipCursor(&rect);
+            //ClipCursor(&rect);
 
             int x = 0;
             int y = 0;
@@ -2827,8 +2829,6 @@ namespace VulkanProject
             return 1;
         }
 
-
-
         VulkanProject::setupSurface(currWinMainData.hWnd, currWinMainData.hInstance);
     }
 
@@ -2935,10 +2935,6 @@ namespace VulkanProject
         vkDestroyImage(currGraphicsCard.logicalDevice, depthImage, nullptr);
         vkFreeMemory(currGraphicsCard.logicalDevice, depthImageMemory, nullptr);
 
-
-        for (auto& mod : shaderModuleMap)
-            vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
-
       
         vkDestroyCommandPool(currGraphicsCard.logicalDevice, commandPool, nullptr);
 
@@ -2952,6 +2948,12 @@ namespace VulkanProject
 
         for (auto imageView : swapChainImageViews) {
             vkDestroyImageView(currGraphicsCard.logicalDevice, imageView, nullptr);
+        }
+
+
+        for (auto& mod : shaderModuleMap)
+        {
+            vkDestroyShaderModule(currGraphicsCard.logicalDevice, mod.second, nullptr);
         }
 
         vkDestroySwapchainKHR(currGraphicsCard.logicalDevice, swapChain, nullptr);
@@ -2990,7 +2992,7 @@ int main()
 {
     //Can hide the console on demand
     //::ShowWindow(::GetConsoleWindow(), SW_SHOW);
-    std::cout << "Vulkan Student Project.";
+    std::cout << "CSD 2150 Final Submission";
 
     if (isTesting)
     {
@@ -3011,6 +3013,19 @@ int main()
     camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.right = glm::vec3(1.0f, 0.0f, 0.0f);
     camera.front = glm::vec3(0.0f, 0.0f, 1.0f);
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+    front.y = sin(glm::radians(camera.pitch));
+    front.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+
+    camera.front = glm::normalize(front);
+    // also re-calculate the Right and Up vector
+    camera.right = glm::normalize(glm::cross(camera.front, glm::vec3(0.0f, 1.0f, 0.0f)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+    camera.up = glm::normalize(glm::cross(camera.right, camera.front));
+
+    camera.target = camera.pos + camera.front;
+
 
     pointLight.pos = defaultLightPos;
     pointLight.color = defaultLightColor;
@@ -3035,8 +3050,6 @@ int main()
 
     createCommandPool();
 
-
-
     //Loading meshes using assimp
     loadObjects();
 
@@ -3055,23 +3068,12 @@ int main()
 
 #endif //  DEFAULT_CUBE
 
-
-
-
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
 
     createCommandBuffers();
     createSyncObjects();
-
-    
-
-
-
-
-    //To Do: Loading textures using assimp
-
 
     UpdateWinMain();
 

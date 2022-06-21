@@ -1,3 +1,12 @@
+/*****************************************************************//**
+ * \file   Mesh.h
+ * \brief  Mesh loading class that uses assimp to read .fbx files
+ * 
+ * \author Clementine Shamaney, clementine.s@digipen.edu
+ * \date   June 2022
+ *********************************************************************/
+
+
 #pragma once
 #include <string>
 #include <vector>

@@ -101,12 +101,12 @@ namespace VulkanProject
         float fov = 45.0f;
 
         bool firstMouse = true;
-        float sens = 0.4f;
+        float sens = 0.1f;
     };
 
 
     float modelScale = 0.01f;
-    float cameraSpeed = 0.01f;
+    float cameraSpeed = 0.0005f;
     Camera camera;
 
     glm::vec3 defaultLightPos = { 0.3f, 3.2f, 0.0f };

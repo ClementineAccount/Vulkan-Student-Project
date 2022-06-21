@@ -12,6 +12,24 @@
     <Filter Include="Source Files\main">
       <UniqueIdentifier>{ad9bc643-c427-46e6-bd8a-57cc73da0fc9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Texture">
+      <UniqueIdentifier>{59cf46e3-62c9-48cc-98c5-45106ffce788}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Mesh">
+      <UniqueIdentifier>{fa0f1883-2a31-45b5-9c94-3149f67cd3da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\tinydssloader">
+      <UniqueIdentifier>{54a597bc-9f3a-470b-b4ed-249fbb31101b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Vulkan Boilerplate">
+      <UniqueIdentifier>{3fd2d928-9fb1-4266-89a4-1e62d2002fb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Vulkan Boilerplate\VertexBuffer">
+      <UniqueIdentifier>{850bad27-0d09-4b3a-94e8-0aa14ab81b32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Vulkan Boilerplate\GraphicsPipeline">
+      <UniqueIdentifier>{7d2daad2-1806-4276-9684-fb422a442c18}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -19,12 +37,18 @@
       <Filter>Source Files\main</Filter>
     </ClInclude>
     <ClInclude Include="Src\Mesh.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="Src\Texture.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Texture</Filter>
     </ClInclude>
     <ClInclude Include="Src\tinyddsloader.h">
+      <Filter>Source Files\tinydssloader</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\VertexBuffer.h">
+      <Filter>Source Files\Vulkan Boilerplate\VertexBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\PushConstants.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -33,13 +57,16 @@
       <Filter>Source Files\main</Filter>
     </ClCompile>
     <ClCompile Include="Src\Mesh.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Src\Texture.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Texture</Filter>
     </ClCompile>
     <ClCompile Include="Src\tinyddsloader.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\tinydssloader</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\VertexBuffer.cpp">
+      <Filter>Source Files\Vulkan Boilerplate\VertexBuffer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
