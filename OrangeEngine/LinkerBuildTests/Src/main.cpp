@@ -2391,8 +2391,9 @@ namespace VulkanProject
         static int WKeyCode = 0x57;
         static int QKeyCode = 0x51;
         static int EKeyCode = 0x45;
+        static int RKeyCode = 0x52;
 
-        if (getKeyDown(QKeyCode))
+        if (getKeyDown(RKeyCode))
         {
             //https://learnopengl.com/Getting-started/Camera
             RECT rect;
@@ -2452,38 +2453,34 @@ namespace VulkanProject
 
         if (getKeyDown(EKeyCode))
         {
+            camera.pos -= camera.up * cameraSpeed * deltaTime;
 
+        }
 
+        if (getKeyDown(RKeyCode))
+        {
+            camera.pos += camera.up * cameraSpeed * deltaTime;
         }
 
 
         if (getKeyDown(AKeyCode) || getKeyDown(VK_LEFT))
         {
-            //glm::vec3 moveVectorForward = camera.target - camera.pos;
-            //camera.pos -= glm::normalize(glm::cross(moveVectorForward, cameraUp)) * cameraSpeed;
-            //camera.target -= moveVector;
+            camera.pos -= camera.right * cameraSpeed * deltaTime;
         }
         if (getKeyDown(DKeyCode) || getKeyDown(VK_RIGHT))
         {
-            //glm::vec3 moveVector = glm::normalize(camera.target - camera.pos) * cameraSpeed * deltaTime;
-            //camera.pos -= moveVector;
-            //camera.target -= moveVector;
+            camera.pos += camera.right * cameraSpeed * deltaTime;
         }
 
         if (getKeyDown(SKeyCode) || getKeyDown(VK_DOWN))
         {
-            //Move away from direction you are facing
-            glm::vec3 moveVector = glm::normalize(camera.target - camera.pos) * cameraSpeed * deltaTime;
-            camera.pos -= moveVector;
-            camera.target -= moveVector;
+            camera.pos -= camera.front * cameraSpeed * deltaTime;
+
         }
 
         if (getKeyDown(WKeyCode) || getKeyDown(VK_UP))
         {
-            //move direction ur facing in
-            glm::vec3 moveVector = glm::normalize(camera.target - camera.pos) * cameraSpeed * deltaTime;
-            camera.pos += moveVector;
-            camera.target += moveVector;
+            camera.pos += camera.front * cameraSpeed * deltaTime;
         }
 
 
@@ -2519,7 +2516,7 @@ namespace VulkanProject
 
 
 
-        view = glm::lookAt(camera.pos, camera.target, glm::vec3(0.0f, 1.0f, 0.0f));
+        view = glm::lookAt(camera.pos, camera.pos + camera.front, glm::vec3(0.0f, 1.0f, 0.0f));
         projection = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
         projection[1][1] *= -1;
 
